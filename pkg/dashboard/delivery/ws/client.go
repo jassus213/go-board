@@ -22,13 +22,21 @@ const pongWait = 60 * time.Second
 // Send pings to peer with this period. Must be less than pongWait.
 const pingPeriod = (pongWait * 9) / 10
 
+// CORSConfig holds CORS configuration for WebSocket connections.
+type CORSConfig struct {
+	// AllowedOrigins is a list of allowed origins for WebSocket connections.
+	// Use ["*"] to allow all origins (NOT recommended for production).
+	AllowedOrigins []string
+	// AllowCredentials indicates whether credentials are allowed.
+	AllowCredentials bool
+}
+
 // upgrader handles the WebSocket handshake and protocol upgrade.
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	// CheckOrigin allows connections from any origin.
-	// WARNING: For production, this should be restricted to your specific domain to prevent CSRF.
-	CheckOrigin: func(r *http.Request) bool { return true },
+	// CheckOrigin will be set dynamically per request
+	CheckOrigin: nil,
 }
 
 // Client represents a single active WebSocket connection.
@@ -127,7 +135,10 @@ func (c *Client) writePump() {
 // ServeWs handles websocket requests from the peer.
 // It upgrades the HTTP connection to a WebSocket connection, creates a new Client,
 // registers it with the Hub, and starts the read/write pumps.
-func ServeWs(hub *Hub, repo dal.DashboardRepository, verifier auth.Verifier, w http.ResponseWriter, r *http.Request) {
+func ServeWs(hub *Hub, repo dal.DashboardRepository, verifier auth.Verifier, corsConfig CORSConfig, w http.ResponseWriter, r *http.Request) {
+	// Set CheckOrigin dynamically based on CORS config
+	upgrader.CheckOrigin = createOriginChecker(corsConfig)
+
 	token := r.URL.Query().Get("token")
 
 	if token == "" {
@@ -164,4 +175,32 @@ func ServeWs(hub *Hub, repo dal.DashboardRepository, verifier auth.Verifier, w h
 
 	go client.writePump()
 	go client.readPump()
+}
+
+// createOriginChecker creates a CheckOrigin function based on CORS configuration.
+func createOriginChecker(config CORSConfig) func(r *http.Request) bool {
+	return func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+
+		// If no origin header, allow (same-origin request)
+		if origin == "" {
+			return true
+		}
+
+		// Check if origin is in allowed list
+		for _, allowed := range config.AllowedOrigins {
+			if allowed == "*" {
+				// Wildcard - allow all (not recommended for production)
+				log.Printf("WARNING: CORS wildcard (*) is enabled. This is insecure for production!")
+				return true
+			}
+			if origin == allowed {
+				return true
+			}
+		}
+
+		// Origin not allowed
+		log.Printf("WebSocket connection rejected: origin %s not in allowed list %v", origin, config.AllowedOrigins)
+		return false
+	}
 }

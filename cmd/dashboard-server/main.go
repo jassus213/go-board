@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/jassus213/go-board/dashboard/auth"
 	"github.com/jassus213/go-board/dashboard/dal/redis"
@@ -61,6 +62,10 @@ type Config struct {
 	GrpcPort string
 	// AuthSecret is a shared secret used by the StaticVerifier for simple token validation.
 	AuthSecret string
+	// CORSAllowedOrigins is a comma-separated list of allowed origins for WebSocket connections.
+	CORSAllowedOrigins string
+	// CORSAllowCredentials indicates whether credentials (cookies, auth headers) are allowed.
+	CORSAllowCredentials bool
 }
 
 // --- Providers (Dependency Injection) ---
@@ -112,8 +117,14 @@ func runWSHub(hub *ws.Hub) {
 func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, repo *redis.DashboardRedisRepository, verifier *auth.StaticVerifier, logger *zap.Logger) {
 	mux := http.NewServeMux()
 
+	// Create CORS config for WebSocket
+	corsConfig := ws.CORSConfig{
+		AllowedOrigins:   parseCORSOrigins(cfg.CORSAllowedOrigins),
+		AllowCredentials: cfg.CORSAllowCredentials,
+	}
+
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ws.ServeWs(hub, repo, verifier, w, r)
+		ws.ServeWs(hub, repo, verifier, corsConfig, w, r)
 	})
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -174,12 +185,20 @@ func runGRPCServer(lc fx.Lifecycle, cfg Config, repo *redis.DashboardRedisReposi
 // It returns a Config struct with default values as fallbacks.
 func loadConfig() Config {
 	_ = godotenv.Load()
+
+	allowCredentials := false
+	if credStr := getEnv("CORS_ALLOW_CREDENTIALS", "false"); credStr == "true" || credStr == "1" {
+		allowCredentials = true
+	}
+
 	return Config{
-		RedisAddr:  getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisPass:  getEnv("REDIS_PASS", ""),
-		HttpPort:   getEnv("HTTP_PORT", ":8080"),
-		GrpcPort:   getEnv("GRPC_PORT", ":50051"),
-		AuthSecret: getEnv("AUTH_SECRET", "super-secret-key"),
+		RedisAddr:            getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPass:            getEnv("REDIS_PASS", ""),
+		HttpPort:             getEnv("HTTP_PORT", ":8080"),
+		GrpcPort:             getEnv("GRPC_PORT", ":50051"),
+		AuthSecret:           getEnv("AUTH_SECRET", "super-secret-key"),
+		CORSAllowedOrigins:   getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
+		CORSAllowCredentials: allowCredentials,
 	}
 }
 
@@ -190,4 +209,24 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// parseCORSOrigins parses a comma-separated list of allowed origins.
+// Returns a slice of origin strings with whitespace trimmed.
+func parseCORSOrigins(origins string) []string {
+	if origins == "" {
+		return []string{}
+	}
+
+	parts := strings.Split(origins, ",")
+	result := make([]string, 0, len(parts))
+
+	for _, origin := range parts {
+		trimmed := strings.TrimSpace(origin)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	return result
 }
