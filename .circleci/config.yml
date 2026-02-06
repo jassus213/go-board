@@ -3,7 +3,7 @@
 executors:
   go-executor:
     docker:
-      - image: cimg/go:1.25
+      - image: cimg/go:1.23
     working_directory: ~/project
 
 jobs:
@@ -31,27 +31,26 @@ jobs:
           paths:
             - .
 
-    test:
-      executor: go-executor
-      steps:
-        - attach_workspace:
-            at: ~/project
-        - run:
-            name: "Run Unit Tests"
-            command: go test -v ./...
+  test:
+    executor: go-executor
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: "Run Unit Tests"
+          command: go test -v ./...
 
-
-    build_docker:
-      machine:
-        image: ubuntu-2204:2023.10.1
-      steps:
-        - attach_workspace:
-            at: ~/project
-        - run:
-            name: "Build Docker Image"
-            command: |
-              docker build -t dashboard-api:latest \
-                -f deploy/docker/Dashboard.Dockerfile .
+  build_docker:
+    machine:
+      image: ubuntu-2204:2023.10.1
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: "Build Docker Image"
+          command: |
+            docker build -t dashboard-api:latest \
+              -f deploy/docker/Dashboard.Dockerfile .
 
 workflows:
   version: 2
