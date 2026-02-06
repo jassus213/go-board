@@ -1,0 +1,22 @@
+﻿syntax = "proto3";
+
+package dashboard;
+
+option go_package = "github.com/jassus213/go-board/dashboard/delivery/grpc/gen";
+
+service DashboardService {
+  rpc StreamUpdates (stream UpdateRequest) returns (stream UpdateResponse);
+}
+
+message UpdateRequest {
+  string dashboard = 1;
+  string member_id = 2;
+  double increment = 3;
+}
+
+message UpdateResponse {
+  string member_id = 1;
+  int64 rank = 2;
+  double score = 3;
+  string error = 4;
+}

@@ -1,0 +1,13 @@
+﻿with-expecter: true
+
+dir: pkg/dashboard/dal
+
+output: pkg/dashboard/dal/mocks
+
+name: DashboardRepository
+
+outpkg: mocks
+
+case: underscore
+
+recursive: false
