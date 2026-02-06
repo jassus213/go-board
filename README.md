@@ -1,6 +1,6 @@
 ﻿# 🏆 GoBoard - Real-Time Leaderboard Engine
 
-[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![CI](https://github.com/jassus213/go-board/actions/workflows/ci.yml/badge.svg)](https://github.com/jassus213/go-board/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/jassus213/go-board/branch/main/graph/badge.svg)](https://codecov.io/gh/jassus213/go-board)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jassus213/go-board)](https://goreportcard.com/report/github.com/jassus213/go-board)
@@ -937,15 +937,15 @@ go test -bench=. ./pkg/dashboard/auth/...
 
 ```go
 func TestFeatureName(t *testing.T) {
-    // Arrange: Set up test data
-    repo := setupTestRepo()
-    
-    // Act: Execute the function
-    result, err := MyFunction(repo, input)
-    
-    // Assert: Verify results
-    assert.NoError(t, err)
-    assert.Equal(t, expected, result)
+// Arrange: Set up test data
+repo := setupTestRepo()
+
+// Act: Execute the function
+result, err := MyFunction(repo, input)
+
+// Assert: Verify results
+assert.NoError(t, err)
+assert.Equal(t, expected, result)
 }
 ```
 

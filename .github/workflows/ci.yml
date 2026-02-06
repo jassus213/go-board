@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   lint:
     name: Lint
@@ -17,14 +22,20 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.24'
           cache: true
+
+      - name: Create Go workspace
+        run: |
+          go work init
+          go work use -r .
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           args: --timeout=5m
+          working-directory: pkg/dashboard
 
   test:
     name: Test
@@ -48,7 +59,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.24'
           cache: true
 
       - name: Create Go workspace
@@ -89,7 +100,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.24'
           cache: true
 
       - name: Create Go workspace
@@ -159,7 +170,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.24'
           cache: true
 
       - name: Create Go workspace
@@ -176,13 +187,14 @@ jobs:
       - name: Comment benchmark results
         uses: actions/github-script@v7
         if: github.event_name == 'pull_request'
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
             try {
               const benchmark = fs.readFileSync('benchmark.txt', 'utf8');
-              if (benchmark.trim().length > 0) {
-                github.rest.issues.createComment({
+              if (benchmark.trim().length > 0 && !benchmark.includes('No benchmarks found')) {
+                await github.rest.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -190,5 +202,5 @@ jobs:
                 });
               }
             } catch (error) {
-              console.log('No benchmark results to post');
+              console.log('Could not post benchmark results:', error.message);
             }
