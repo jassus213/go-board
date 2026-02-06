@@ -21,6 +21,12 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// contextKey is a custom type for context keys to avoid collisions
+type contextKey string
+
+// memberIDKey is the context key for storing authenticated member ID
+const memberIDKey contextKey = "member_id"
+
 // Server implements the generated DashboardServiceServer interface.
 // It holds the required dependencies (like the repository) to execute business commands.
 type Server struct {
@@ -45,7 +51,7 @@ func NewServer(repo dal.DashboardRepository) *Server {
 func (s *Server) StreamUpdates(stream pb.DashboardService_StreamUpdatesServer) error {
 	ctx := stream.Context()
 
-	authID, _ := ctx.Value("member_id").(string)
+	authID, _ := ctx.Value(memberIDKey).(string)
 
 	for {
 		in, err := stream.Recv()
@@ -136,5 +142,5 @@ type authenticatedStream struct {
 
 // Context overrides the standard stream context to include the verified memberID.
 func (s *authenticatedStream) Context() context.Context {
-	return context.WithValue(s.ServerStream.Context(), "member_id", s.memberID)
+	return context.WithValue(s.ServerStream.Context(), memberIDKey, s.memberID)
 }

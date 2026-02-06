@@ -39,7 +39,7 @@ func TestStreamUpdates(t *testing.T) {
 
 	t.Run("success_stream_cycle", func(t *testing.T) {
 		testAuthID := "user_1"
-		ctx := context.WithValue(context.Background(), "member_id", testAuthID)
+		ctx := context.WithValue(context.Background(), memberIDKey, testAuthID)
 
 		stream := &mockStream{ctx: ctx}
 

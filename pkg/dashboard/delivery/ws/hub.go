@@ -16,6 +16,7 @@ type Hub struct {
 	// Inbound channel for unregistering clients.
 	// When a client disconnects, it sends itself here to be removed from the map.
 	unregister chan *Client
+	broadcast  chan OutboundMessage
 }
 
 // NewHub creates a new Hub instance with initialized channels and client map.
@@ -24,6 +25,7 @@ func NewHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
+		broadcast:  make(chan OutboundMessage),
 	}
 }
 
@@ -42,6 +44,15 @@ func (h *Hub) Run() {
 				case <-client.send:
 				default:
 					close(client.send)
+				}
+			}
+		case msg := <-h.broadcast:
+			for client := range h.clients {
+				select {
+				case client.send <- msg:
+				default:
+					close(client.send)
+					delete(h.clients, client)
 				}
 			}
 		}
