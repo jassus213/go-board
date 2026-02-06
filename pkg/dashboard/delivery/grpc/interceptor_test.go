@@ -32,7 +32,7 @@ func TestAuthInterceptor(t *testing.T) {
 		ctx := metadata.NewIncomingContext(context.Background(), md)
 
 		handler := func(srv interface{}, stream grpc.ServerStream) error {
-			id := stream.Context().Value("member_id")
+			id := stream.Context().Value(memberIDKey)
 			assert.Equal(t, "user1", id)
 			return nil
 		}
