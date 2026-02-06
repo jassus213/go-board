@@ -69,7 +69,7 @@ func (c *Client) readPump() {
 
 	// Set configuration for connection health checks (Pong)
 	c.conn.SetReadLimit(512)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
 		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
