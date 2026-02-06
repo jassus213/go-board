@@ -23,3 +23,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
+
+require github.com/jassus213/go-board/dashboard v0.0.0
+
+replace github.com/jassus213/go-board/dashboard => ./pkg/dashboard
