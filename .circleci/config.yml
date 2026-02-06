@@ -38,7 +38,7 @@ jobs:
           at: ~/project
       - run:
           name: "Run Unit Tests"
-          command: go test -v ./...
+          command: go test -v ./... ./pkg/dashboard/...
 
   build_docker:
     machine:
