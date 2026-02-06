@@ -23,11 +23,16 @@ func TestServeWs_Auth(t *testing.T) {
 	repo := mocks.NewDashboardRepository(t)
 	verifier := &mockVerifier{}
 
+	corsConfig := CORSConfig{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowCredentials: true,
+	}
+
 	t.Run("unauthorized_missing_token", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/ws", nil)
 		w := httptest.NewRecorder()
 
-		ServeWs(hub, repo, verifier, w, req)
+		ServeWs(hub, repo, verifier, corsConfig, w, req)
 
 		assert.Equal(t, 401, w.Code)
 	})
@@ -36,7 +41,7 @@ func TestServeWs_Auth(t *testing.T) {
 		req := httptest.NewRequest("GET", "/ws?token=wrong", nil)
 		w := httptest.NewRecorder()
 
-		ServeWs(hub, repo, verifier, w, req)
+		ServeWs(hub, repo, verifier, corsConfig, w, req)
 
 		assert.Equal(t, 403, w.Code)
 	})

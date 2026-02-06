@@ -20,8 +20,13 @@ func TestWebSocketFullWorkflow(t *testing.T) {
 	repo := mocks.NewDashboardRepository(t)
 	verifier := &auth.StaticVerifier{Secret: "pass"}
 
+	corsConfig := CORSConfig{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowCredentials: true,
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ServeWs(hub, repo, verifier, w, r)
+		ServeWs(hub, repo, verifier, corsConfig, w, r)
 	}))
 	defer server.Close()
 
