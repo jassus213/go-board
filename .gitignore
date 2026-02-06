@@ -1,0 +1,35 @@
+﻿# --- Binaries ---
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.*
+!.env.example
+
+# --- Testing & Coverage ---
+*.out
+*.test
+coverage.out
+coverage.html
+
+# --- IDEs & Editors ---
+# JetBrains (GoLand)
+.idea/
+*.iws
+*.iml
+# VS Code
+.vscode/
+
+# --- Go Workspaces ---
+go.work
+go.work.sum
+
+# --- System Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
