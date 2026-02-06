@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jassus213/GoBoard/dashboard/auth"
-	"github.com/jassus213/GoBoard/dashboard/dal/redis"
-	"github.com/jassus213/GoBoard/dashboard/delivery/grpc"
-	pb "github.com/jassus213/GoBoard/dashboard/delivery/grpc/gen"
-	"github.com/jassus213/GoBoard/dashboard/delivery/ws"
+	"github.com/jassus213/go-board/dashboard/auth"
+	"github.com/jassus213/go-board/dashboard/dal/redis"
+	"github.com/jassus213/go-board/dashboard/delivery/grpc"
+	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
+	"github.com/jassus213/go-board/dashboard/delivery/ws"
 
 	"github.com/joho/godotenv"
 	goredis "github.com/redis/go-redis/v9"

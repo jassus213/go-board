@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jassus213/GoBoard/dashboard/domain"
+	"github.com/jassus213/go-board/dashboard/domain"
 
 	goredis "github.com/redis/go-redis/v9"
 )

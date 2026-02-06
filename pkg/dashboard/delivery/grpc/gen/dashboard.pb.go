@@ -164,7 +164,7 @@ const file_dashboard_proto_rawDesc = "" +
 	"\x05score\x18\x03 \x01(\x01R\x05score\x12\x14\n" +
 	"\x05error\x18\x04 \x01(\tR\x05error2\\\n" +
 	"\x10DashboardService\x12H\n" +
-	"\rStreamUpdates\x12\x18.dashboard.UpdateRequest\x1a\x19.dashboard.UpdateResponse(\x010\x01B:Z8github.com/jassus213/GoBoard/dashboard/delivery/grpc/genb\x06proto3"
+	"\rStreamUpdates\x12\x18.dashboard.UpdateRequest\x1a\x19.dashboard.UpdateResponse(\x010\x01B;Z9github.com/jassus213/go-board/dashboard/delivery/grpc/genb\x06proto3"
 
 var (
 	file_dashboard_proto_rawDescOnce sync.Once

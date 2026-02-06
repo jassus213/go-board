@@ -1,4 +1,4 @@
-module github.com/jassus213/GoBoard/dashboard
+module github.com/jassus213/go-board/dashboard
 
 go 1.25.6
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jassus213/GoBoard/dashboard/domain"
+	"github.com/jassus213/go-board/dashboard/domain"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"

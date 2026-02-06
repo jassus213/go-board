@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/jassus213/GoBoard/dashboard/dal/mocks"
-	pb "github.com/jassus213/GoBoard/dashboard/delivery/grpc/gen"
+	"github.com/jassus213/go-board/dashboard/dal/mocks"
+	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

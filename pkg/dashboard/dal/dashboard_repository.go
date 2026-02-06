@@ -5,7 +5,7 @@ package dal
 import (
 	"context"
 
-	"github.com/jassus213/GoBoard/dashboard/domain"
+	"github.com/jassus213/go-board/dashboard/domain"
 )
 
 // DashboardRepository defines the set of operations required to manage dashboards.

@@ -4,7 +4,7 @@
 package bll
 
 import (
-	"github.com/jassus213/GoBoard/dashboard/domain"
+	"github.com/jassus213/go-board/dashboard/domain"
 )
 
 // AddMemberRequest contains parameters for adding or updating a single member.

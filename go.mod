@@ -1,4 +1,4 @@
-module github.com/jassus213/GoBoard/dashboard-api
+module github.com/jassus213/go-board/dashboard-api
 
 go 1.25
 

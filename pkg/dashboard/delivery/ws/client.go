@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jassus213/GoBoard/dashboard/auth"
-	"github.com/jassus213/GoBoard/dashboard/bll"
-	"github.com/jassus213/GoBoard/dashboard/dal"
+	"github.com/jassus213/go-board/dashboard/auth"
+	"github.com/jassus213/go-board/dashboard/bll"
+	"github.com/jassus213/go-board/dashboard/dal"
 
 	"github.com/gorilla/websocket"
 )

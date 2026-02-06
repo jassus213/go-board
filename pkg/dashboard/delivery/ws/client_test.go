@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jassus213/GoBoard/dashboard/dal/mocks"
+	"github.com/jassus213/go-board/dashboard/dal/mocks"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,7 +3,7 @@ package bll
 import (
 	"context"
 
-	"github.com/jassus213/GoBoard/dashboard/dal"
+	"github.com/jassus213/go-board/dashboard/dal"
 )
 
 // ProcessScoreUpdate is a composite business operation (Workflow) that performs

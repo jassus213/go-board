@@ -2,7 +2,7 @@
 
 package dashboard;
 
-option go_package = "github.com/jassus213/GoBoard/dashboard/delivery/grpc/gen";
+option go_package = "github.com/jassus213/go-board/dashboard/delivery/grpc/gen";
 
 service DashboardService {
   rpc StreamUpdates (stream UpdateRequest) returns (stream UpdateResponse);

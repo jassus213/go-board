@@ -3,8 +3,8 @@ package bll
 import (
 	"context"
 
-	"github.com/jassus213/GoBoard/dashboard/dal"
-	"github.com/jassus213/GoBoard/dashboard/domain"
+	"github.com/jassus213/go-board/dashboard/dal"
+	"github.com/jassus213/go-board/dashboard/domain"
 )
 
 // GetTopMembersHandler retrieves the highest-ranking members based on the requested limit.

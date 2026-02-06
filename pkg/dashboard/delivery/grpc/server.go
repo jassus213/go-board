@@ -8,14 +8,14 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/jassus213/GoBoard/dashboard/auth"
-	"github.com/jassus213/GoBoard/dashboard/bll"
-	"github.com/jassus213/GoBoard/dashboard/dal"
+	"github.com/jassus213/go-board/dashboard/auth"
+	"github.com/jassus213/go-board/dashboard/bll"
+	"github.com/jassus213/go-board/dashboard/dal"
 
 	"io"
 	"log"
 
-	pb "github.com/jassus213/GoBoard/dashboard/delivery/grpc/gen"
+	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"

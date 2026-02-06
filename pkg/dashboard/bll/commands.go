@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jassus213/GoBoard/dashboard/dal"
+	"github.com/jassus213/go-board/dashboard/dal"
 )
 
 // AddMemberHandler processes the addition or overwrite of a single dashboard member.

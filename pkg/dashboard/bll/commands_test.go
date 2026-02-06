@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jassus213/GoBoard/dashboard/dal/mocks"
-	"github.com/jassus213/GoBoard/dashboard/domain"
+	"github.com/jassus213/go-board/dashboard/dal/mocks"
+	"github.com/jassus213/go-board/dashboard/domain"
 	"github.com/stretchr/testify/assert"
 )
 
