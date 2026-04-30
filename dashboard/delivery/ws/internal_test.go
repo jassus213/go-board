@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,27 +16,27 @@ import (
 func TestCreateOriginChecker(t *testing.T) {
 	t.Run("allows empty origin", func(t *testing.T) {
 		check := createOriginChecker(CORSConfig{AllowedOrigins: []string{"https://allowed.com"}})
-		req := httptest.NewRequest(http.MethodGet, "/ws", nil)
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/ws", http.NoBody)
 		assert.True(t, check(req))
 	})
 
 	t.Run("allows exact match", func(t *testing.T) {
 		check := createOriginChecker(CORSConfig{AllowedOrigins: []string{"https://allowed.com"}})
-		req := httptest.NewRequest(http.MethodGet, "/ws", nil)
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/ws", http.NoBody)
 		req.Header.Set("Origin", "https://allowed.com")
 		assert.True(t, check(req))
 	})
 
 	t.Run("allows wildcard", func(t *testing.T) {
 		check := createOriginChecker(CORSConfig{AllowedOrigins: []string{"*"}})
-		req := httptest.NewRequest(http.MethodGet, "/ws", nil)
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/ws", http.NoBody)
 		req.Header.Set("Origin", "https://any.com")
 		assert.True(t, check(req))
 	})
 
 	t.Run("rejects unknown origin", func(t *testing.T) {
 		check := createOriginChecker(CORSConfig{AllowedOrigins: []string{"https://allowed.com"}})
-		req := httptest.NewRequest(http.MethodGet, "/ws", nil)
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/ws", http.NoBody)
 		req.Header.Set("Origin", "https://blocked.com")
 		assert.False(t, check(req))
 	})
@@ -114,8 +115,11 @@ func TestClientSendPingAndWritePumpShutdown(t *testing.T) {
 	defer srv.Close()
 
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
-	clientConn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	clientConn, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	require.NoError(t, err)
+	if resp != nil {
+		defer func() { _ = resp.Body.Close() }()
+	}
 	defer func() { _ = clientConn.Close() }()
 
 	serverConn := <-serverConnCh

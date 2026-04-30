@@ -38,8 +38,12 @@ jobs:
           args: --timeout=5m
 
   test:
-    name: Test
+    name: Test (Go ${{ matrix.go-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.24.x', '1.25.x']
 
     services:
       redis:
@@ -59,7 +63,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: ${{ matrix.go-version }}
           cache: true
 
       - name: Create Go workspace
