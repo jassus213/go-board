@@ -4,7 +4,7 @@ WORKDIR /build
 ENV CGO_ENABLED=0
 
 COPY go.mod go.sum ./
-COPY pkg/dashboard/go.mod pkg/dashboard/go.sum pkg/dashboard/
+COPY dashboard/go.mod dashboard/go.sum dashboard/
 RUN go mod download
 
 COPY . .
