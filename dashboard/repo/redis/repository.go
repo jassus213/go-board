@@ -60,8 +60,8 @@ func (r *DashboardRedisRepository) RemoveMemberFromDashboard(ctx context.Context
 
 // ViewMemberRank returns the 1-based rank of a member based on descending scores.
 // It returns domain.ErrMemberNotFound if the member does not exist in the dashboard.
-func (r *DashboardRedisRepository) ViewMemberRank(ctx context.Context, dashboard string, memberId string) (int64, error) {
-	rank, err := r.client.ZRevRank(ctx, r.prefix+dashboard, memberId).Result()
+func (r *DashboardRedisRepository) ViewMemberRank(ctx context.Context, dashboard, memberID string) (int64, error) {
+	rank, err := r.client.ZRevRank(ctx, r.prefix+dashboard, memberID).Result()
 	if err != nil {
 		if errors.Is(err, goredis.Nil) {
 			return 0, core.ErrMemberNotFound

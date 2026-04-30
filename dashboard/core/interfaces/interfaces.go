@@ -45,7 +45,7 @@ type DashboardRepository interface {
 	// ViewMemberRank returns the current position (rank) of a member in the dashboard.
 	// The rank is typically 1-based and calculated based on descending scores.
 	// Should return domain.ErrMemberNotFound if the member does not exist.
-	ViewMemberRank(ctx context.Context, dashboard string, memberId string) (int64, error)
+	ViewMemberRank(ctx context.Context, dashboard, memberID string) (int64, error)
 
 	// IncrementMemberScore modifies a member's current score by adding the increment value.
 	// If the member does not exist, they will be created with the increment as their initial score.

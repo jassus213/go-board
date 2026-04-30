@@ -114,31 +114,43 @@ func (c *Client) writePump() {
 		ticker.Stop()
 		_ = c.conn.Close()
 	}()
+
 	for {
 		select {
 		case message, ok := <-c.send:
-			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+			if err := c.writeMessage(message, ok); err != nil {
 				return
 			}
-			if !ok {
-				// Channel closed, send close message
-				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			if err := c.conn.WriteJSON(message); err != nil {
-				return
-			}
-
 		case <-ticker.C:
-			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
-				return
-			}
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := c.sendPing(); err != nil {
 				return
 			}
 		}
 	}
+}
+
+func (c *Client) writeMessage(message OutboundMessage, ok bool) error {
+	if err := c.setWriteDeadline(); err != nil {
+		return err
+	}
+
+	if !ok {
+		return c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+	}
+
+	return c.conn.WriteJSON(message)
+}
+
+func (c *Client) sendPing() error {
+	if err := c.setWriteDeadline(); err != nil {
+		return err
+	}
+
+	return c.conn.WriteMessage(websocket.PingMessage, nil)
+}
+
+func (c *Client) setWriteDeadline() error {
+	return c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 }
 
 // ServeWs handles websocket requests from the peer.
