@@ -6,6 +6,10 @@ option go_package = "github.com/jassus213/go-board/dashboard/delivery/grpc/gen";
 
 service DashboardService {
   rpc StreamUpdates (stream UpdateRequest) returns (stream UpdateResponse);
+  rpc IncrementScore (IncrementScoreRequest) returns (IncrementScoreResponse);
+  rpc GetMemberRank (GetMemberRankRequest) returns (GetMemberRankResponse);
+  rpc GetTopMembers (GetTopMembersRequest) returns (GetTopMembersResponse);
+  rpc GetDashboardStats (GetDashboardStatsRequest) returns (GetDashboardStatsResponse);
 }
 
 message UpdateRequest {
@@ -29,4 +33,48 @@ message ProblemDetails {
   string detail = 4;
   string instance = 5;
   string code = 6;
+}
+
+message IncrementScoreRequest {
+  string dashboard = 1;
+  string member_id = 2;
+  double increment = 3;
+}
+
+message IncrementScoreResponse {
+  string member_id = 1;
+  int64 rank = 2;
+}
+
+message GetMemberRankRequest {
+  string dashboard = 1;
+  string member_id = 2;
+}
+
+message GetMemberRankResponse {
+  string member_id = 1;
+  int64 rank = 2;
+}
+
+message GetTopMembersRequest {
+  string dashboard = 1;
+  int64 limit = 2;
+}
+
+message MemberRecord {
+  string member_id = 1;
+  int64 rank = 2;
+  double score = 3;
+}
+
+message GetTopMembersResponse {
+  repeated MemberRecord members = 1;
+}
+
+message GetDashboardStatsRequest {
+  string dashboard = 1;
+}
+
+message GetDashboardStatsResponse {
+  int64 total_members = 1;
 }

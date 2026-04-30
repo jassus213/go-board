@@ -88,6 +88,30 @@ func TestAuthInterceptor_Fail(t *testing.T) {
 	})
 }
 
+func TestAuthUnaryInterceptor(t *testing.T) {
+	verifier := &mockAuth{token: "valid-pass"}
+	interceptor := AuthUnaryInterceptor(verifier)
+	info := &grpc.UnaryServerInfo{FullMethod: "/dashboard.DashboardService/GetDashboardStats"}
+
+	t.Run("injects_member_id", func(t *testing.T) {
+		md := metadata.Pairs("authorization", "Bearer valid-pass")
+		ctx := metadata.NewIncomingContext(context.Background(), md)
+		resp, err := interceptor(ctx, nil, info, func(ctx context.Context, req interface{}) (interface{}, error) {
+			assert.Equal(t, "user1", ctx.Value(memberIDKey))
+			return "ok", nil
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, "ok", resp)
+	})
+
+	t.Run("missing_token", func(t *testing.T) {
+		_, err := interceptor(context.Background(), nil, info, nil)
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.Unauthenticated, st.Code())
+	})
+}
+
 func assertProblemDetail(t *testing.T, details []interface{}, code string) {
 	t.Helper()
 	if assert.NotEmpty(t, details) {

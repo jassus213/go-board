@@ -16,7 +16,7 @@ import (
 	"github.com/jassus213/go-board/dashboard/core/usecase"
 	"github.com/jassus213/go-board/dashboard/delivery/grpc"
 	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
-	"github.com/jassus213/go-board/dashboard/delivery/problem"
+	"github.com/jassus213/go-board/dashboard/delivery/rest"
 	"github.com/jassus213/go-board/dashboard/delivery/ws"
 	"github.com/jassus213/go-board/dashboard/repo/redis"
 
@@ -133,35 +133,20 @@ func runWSHub(cfg Config, hub *ws.Hub, logger *zap.Logger) {
 // runHTTPServer configures and starts the HTTP server, including WebSocket and health check endpoints.
 // It registers OnStart and OnStop hooks to ensure the server starts after DI and shuts down gracefully.
 func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, uc *usecase.BoardUseCase, verifier *auth.StaticVerifier, logger *zap.Logger) {
-	mux := http.NewServeMux()
-
-	// Create CORS config for WebSocket
-	corsConfig := ws.CORSConfig{
-		AllowedOrigins:   parseCORSOrigins(cfg.CORSAllowedOrigins),
-		AllowCredentials: cfg.CORSAllowCredentials,
-	}
-
-	if cfg.EnableWebSocket {
-		mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-			ws.ServeWs(hub, uc, verifier, corsConfig, w, r)
-		})
-	} else {
-		mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-			pd := problem.FromError(errors.New("websocket mode is disabled"), http.StatusServiceUnavailable, r.URL.Path)
-			problem.WriteHTTP(w, &pd)
-		})
-	}
-
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte("OK")); err != nil {
-			logger.Warn("failed to write health response", zap.Error(err))
-		}
+	router := rest.NewRouter(&rest.Params{
+		Hub:      hub,
+		UseCase:  uc,
+		Verifier: verifier,
+		Config: rest.Config{
+			EnableWebSocket:      cfg.EnableWebSocket,
+			CORSAllowedOrigins:   parseCORSOrigins(cfg.CORSAllowedOrigins),
+			CORSAllowCredentials: cfg.CORSAllowCredentials,
+		},
 	})
 
 	srv := &http.Server{
 		Addr:              cfg.HttpPort,
-		Handler:           mux,
+		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -192,6 +177,7 @@ func runGRPCServer(lc fx.Lifecycle, cfg Config, uc *usecase.BoardUseCase, verifi
 
 	opts := []googlegrpc.ServerOption{
 		googlegrpc.StreamInterceptor(grpc.AuthInterceptor(verifier)),
+		googlegrpc.UnaryInterceptor(grpc.AuthUnaryInterceptor(verifier)),
 	}
 
 	grpcServer := googlegrpc.NewServer(opts...)

@@ -233,6 +233,466 @@ func (x *ProblemDetails) GetCode() string {
 	return ""
 }
 
+type IncrementScoreRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dashboard     string                 `protobuf:"bytes,1,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
+	MemberId      string                 `protobuf:"bytes,2,opt,name=member_id,json=memberId,proto3" json:"member_id,omitempty"`
+	Increment     float64                `protobuf:"fixed64,3,opt,name=increment,proto3" json:"increment,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncrementScoreRequest) Reset() {
+	*x = IncrementScoreRequest{}
+	mi := &file_dashboard_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncrementScoreRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncrementScoreRequest) ProtoMessage() {}
+
+func (x *IncrementScoreRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncrementScoreRequest.ProtoReflect.Descriptor instead.
+func (*IncrementScoreRequest) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *IncrementScoreRequest) GetDashboard() string {
+	if x != nil {
+		return x.Dashboard
+	}
+	return ""
+}
+
+func (x *IncrementScoreRequest) GetMemberId() string {
+	if x != nil {
+		return x.MemberId
+	}
+	return ""
+}
+
+func (x *IncrementScoreRequest) GetIncrement() float64 {
+	if x != nil {
+		return x.Increment
+	}
+	return 0
+}
+
+type IncrementScoreResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MemberId      string                 `protobuf:"bytes,1,opt,name=member_id,json=memberId,proto3" json:"member_id,omitempty"`
+	Rank          int64                  `protobuf:"varint,2,opt,name=rank,proto3" json:"rank,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncrementScoreResponse) Reset() {
+	*x = IncrementScoreResponse{}
+	mi := &file_dashboard_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncrementScoreResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncrementScoreResponse) ProtoMessage() {}
+
+func (x *IncrementScoreResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncrementScoreResponse.ProtoReflect.Descriptor instead.
+func (*IncrementScoreResponse) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *IncrementScoreResponse) GetMemberId() string {
+	if x != nil {
+		return x.MemberId
+	}
+	return ""
+}
+
+func (x *IncrementScoreResponse) GetRank() int64 {
+	if x != nil {
+		return x.Rank
+	}
+	return 0
+}
+
+type GetMemberRankRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dashboard     string                 `protobuf:"bytes,1,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
+	MemberId      string                 `protobuf:"bytes,2,opt,name=member_id,json=memberId,proto3" json:"member_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMemberRankRequest) Reset() {
+	*x = GetMemberRankRequest{}
+	mi := &file_dashboard_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMemberRankRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMemberRankRequest) ProtoMessage() {}
+
+func (x *GetMemberRankRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMemberRankRequest.ProtoReflect.Descriptor instead.
+func (*GetMemberRankRequest) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetMemberRankRequest) GetDashboard() string {
+	if x != nil {
+		return x.Dashboard
+	}
+	return ""
+}
+
+func (x *GetMemberRankRequest) GetMemberId() string {
+	if x != nil {
+		return x.MemberId
+	}
+	return ""
+}
+
+type GetMemberRankResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MemberId      string                 `protobuf:"bytes,1,opt,name=member_id,json=memberId,proto3" json:"member_id,omitempty"`
+	Rank          int64                  `protobuf:"varint,2,opt,name=rank,proto3" json:"rank,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMemberRankResponse) Reset() {
+	*x = GetMemberRankResponse{}
+	mi := &file_dashboard_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMemberRankResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMemberRankResponse) ProtoMessage() {}
+
+func (x *GetMemberRankResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMemberRankResponse.ProtoReflect.Descriptor instead.
+func (*GetMemberRankResponse) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetMemberRankResponse) GetMemberId() string {
+	if x != nil {
+		return x.MemberId
+	}
+	return ""
+}
+
+func (x *GetMemberRankResponse) GetRank() int64 {
+	if x != nil {
+		return x.Rank
+	}
+	return 0
+}
+
+type GetTopMembersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dashboard     string                 `protobuf:"bytes,1,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
+	Limit         int64                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTopMembersRequest) Reset() {
+	*x = GetTopMembersRequest{}
+	mi := &file_dashboard_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTopMembersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTopMembersRequest) ProtoMessage() {}
+
+func (x *GetTopMembersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTopMembersRequest.ProtoReflect.Descriptor instead.
+func (*GetTopMembersRequest) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetTopMembersRequest) GetDashboard() string {
+	if x != nil {
+		return x.Dashboard
+	}
+	return ""
+}
+
+func (x *GetTopMembersRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type MemberRecord struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MemberId      string                 `protobuf:"bytes,1,opt,name=member_id,json=memberId,proto3" json:"member_id,omitempty"`
+	Rank          int64                  `protobuf:"varint,2,opt,name=rank,proto3" json:"rank,omitempty"`
+	Score         float64                `protobuf:"fixed64,3,opt,name=score,proto3" json:"score,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MemberRecord) Reset() {
+	*x = MemberRecord{}
+	mi := &file_dashboard_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemberRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemberRecord) ProtoMessage() {}
+
+func (x *MemberRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemberRecord.ProtoReflect.Descriptor instead.
+func (*MemberRecord) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *MemberRecord) GetMemberId() string {
+	if x != nil {
+		return x.MemberId
+	}
+	return ""
+}
+
+func (x *MemberRecord) GetRank() int64 {
+	if x != nil {
+		return x.Rank
+	}
+	return 0
+}
+
+func (x *MemberRecord) GetScore() float64 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+type GetTopMembersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Members       []*MemberRecord        `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTopMembersResponse) Reset() {
+	*x = GetTopMembersResponse{}
+	mi := &file_dashboard_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTopMembersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTopMembersResponse) ProtoMessage() {}
+
+func (x *GetTopMembersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTopMembersResponse.ProtoReflect.Descriptor instead.
+func (*GetTopMembersResponse) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetTopMembersResponse) GetMembers() []*MemberRecord {
+	if x != nil {
+		return x.Members
+	}
+	return nil
+}
+
+type GetDashboardStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Dashboard     string                 `protobuf:"bytes,1,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDashboardStatsRequest) Reset() {
+	*x = GetDashboardStatsRequest{}
+	mi := &file_dashboard_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDashboardStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDashboardStatsRequest) ProtoMessage() {}
+
+func (x *GetDashboardStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDashboardStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetDashboardStatsRequest) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetDashboardStatsRequest) GetDashboard() string {
+	if x != nil {
+		return x.Dashboard
+	}
+	return ""
+}
+
+type GetDashboardStatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TotalMembers  int64                  `protobuf:"varint,1,opt,name=total_members,json=totalMembers,proto3" json:"total_members,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDashboardStatsResponse) Reset() {
+	*x = GetDashboardStatsResponse{}
+	mi := &file_dashboard_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDashboardStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDashboardStatsResponse) ProtoMessage() {}
+
+func (x *GetDashboardStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_dashboard_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDashboardStatsResponse.ProtoReflect.Descriptor instead.
+func (*GetDashboardStatsResponse) Descriptor() ([]byte, []int) {
+	return file_dashboard_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetDashboardStatsResponse) GetTotalMembers() int64 {
+	if x != nil {
+		return x.TotalMembers
+	}
+	return 0
+}
+
 var File_dashboard_proto protoreflect.FileDescriptor
 
 const file_dashboard_proto_rawDesc = "" +
@@ -253,9 +713,39 @@ const file_dashboard_proto_rawDesc = "" +
 	"\x06status\x18\x03 \x01(\x05R\x06status\x12\x16\n" +
 	"\x06detail\x18\x04 \x01(\tR\x06detail\x12\x1a\n" +
 	"\binstance\x18\x05 \x01(\tR\binstance\x12\x12\n" +
-	"\x04code\x18\x06 \x01(\tR\x04code2\\\n" +
+	"\x04code\x18\x06 \x01(\tR\x04code\"p\n" +
+	"\x15IncrementScoreRequest\x12\x1c\n" +
+	"\tdashboard\x18\x01 \x01(\tR\tdashboard\x12\x1b\n" +
+	"\tmember_id\x18\x02 \x01(\tR\bmemberId\x12\x1c\n" +
+	"\tincrement\x18\x03 \x01(\x01R\tincrement\"I\n" +
+	"\x16IncrementScoreResponse\x12\x1b\n" +
+	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12\x12\n" +
+	"\x04rank\x18\x02 \x01(\x03R\x04rank\"Q\n" +
+	"\x14GetMemberRankRequest\x12\x1c\n" +
+	"\tdashboard\x18\x01 \x01(\tR\tdashboard\x12\x1b\n" +
+	"\tmember_id\x18\x02 \x01(\tR\bmemberId\"H\n" +
+	"\x15GetMemberRankResponse\x12\x1b\n" +
+	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12\x12\n" +
+	"\x04rank\x18\x02 \x01(\x03R\x04rank\"J\n" +
+	"\x14GetTopMembersRequest\x12\x1c\n" +
+	"\tdashboard\x18\x01 \x01(\tR\tdashboard\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x03R\x05limit\"U\n" +
+	"\fMemberRecord\x12\x1b\n" +
+	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12\x12\n" +
+	"\x04rank\x18\x02 \x01(\x03R\x04rank\x12\x14\n" +
+	"\x05score\x18\x03 \x01(\x01R\x05score\"J\n" +
+	"\x15GetTopMembersResponse\x121\n" +
+	"\amembers\x18\x01 \x03(\v2\x17.dashboard.MemberRecordR\amembers\"8\n" +
+	"\x18GetDashboardStatsRequest\x12\x1c\n" +
+	"\tdashboard\x18\x01 \x01(\tR\tdashboard\"@\n" +
+	"\x19GetDashboardStatsResponse\x12#\n" +
+	"\rtotal_members\x18\x01 \x01(\x03R\ftotalMembers2\xbb\x03\n" +
 	"\x10DashboardService\x12H\n" +
-	"\rStreamUpdates\x12\x18.dashboard.UpdateRequest\x1a\x19.dashboard.UpdateResponse(\x010\x01B;Z9github.com/jassus213/go-board/dashboard/delivery/grpc/genb\x06proto3"
+	"\rStreamUpdates\x12\x18.dashboard.UpdateRequest\x1a\x19.dashboard.UpdateResponse(\x010\x01\x12U\n" +
+	"\x0eIncrementScore\x12 .dashboard.IncrementScoreRequest\x1a!.dashboard.IncrementScoreResponse\x12R\n" +
+	"\rGetMemberRank\x12\x1f.dashboard.GetMemberRankRequest\x1a .dashboard.GetMemberRankResponse\x12R\n" +
+	"\rGetTopMembers\x12\x1f.dashboard.GetTopMembersRequest\x1a .dashboard.GetTopMembersResponse\x12^\n" +
+	"\x11GetDashboardStats\x12#.dashboard.GetDashboardStatsRequest\x1a$.dashboard.GetDashboardStatsResponseB;Z9github.com/jassus213/go-board/dashboard/delivery/grpc/genb\x06proto3"
 
 var (
 	file_dashboard_proto_rawDescOnce sync.Once
@@ -269,21 +759,39 @@ func file_dashboard_proto_rawDescGZIP() []byte {
 	return file_dashboard_proto_rawDescData
 }
 
-var file_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_dashboard_proto_goTypes = []any{
-	(*UpdateRequest)(nil),  // 0: dashboard.UpdateRequest
-	(*UpdateResponse)(nil), // 1: dashboard.UpdateResponse
-	(*ProblemDetails)(nil), // 2: dashboard.ProblemDetails
+	(*UpdateRequest)(nil),             // 0: dashboard.UpdateRequest
+	(*UpdateResponse)(nil),            // 1: dashboard.UpdateResponse
+	(*ProblemDetails)(nil),            // 2: dashboard.ProblemDetails
+	(*IncrementScoreRequest)(nil),     // 3: dashboard.IncrementScoreRequest
+	(*IncrementScoreResponse)(nil),    // 4: dashboard.IncrementScoreResponse
+	(*GetMemberRankRequest)(nil),      // 5: dashboard.GetMemberRankRequest
+	(*GetMemberRankResponse)(nil),     // 6: dashboard.GetMemberRankResponse
+	(*GetTopMembersRequest)(nil),      // 7: dashboard.GetTopMembersRequest
+	(*MemberRecord)(nil),              // 8: dashboard.MemberRecord
+	(*GetTopMembersResponse)(nil),     // 9: dashboard.GetTopMembersResponse
+	(*GetDashboardStatsRequest)(nil),  // 10: dashboard.GetDashboardStatsRequest
+	(*GetDashboardStatsResponse)(nil), // 11: dashboard.GetDashboardStatsResponse
 }
 var file_dashboard_proto_depIdxs = []int32{
-	2, // 0: dashboard.UpdateResponse.problem:type_name -> dashboard.ProblemDetails
-	0, // 1: dashboard.DashboardService.StreamUpdates:input_type -> dashboard.UpdateRequest
-	1, // 2: dashboard.DashboardService.StreamUpdates:output_type -> dashboard.UpdateResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2,  // 0: dashboard.UpdateResponse.problem:type_name -> dashboard.ProblemDetails
+	8,  // 1: dashboard.GetTopMembersResponse.members:type_name -> dashboard.MemberRecord
+	0,  // 2: dashboard.DashboardService.StreamUpdates:input_type -> dashboard.UpdateRequest
+	3,  // 3: dashboard.DashboardService.IncrementScore:input_type -> dashboard.IncrementScoreRequest
+	5,  // 4: dashboard.DashboardService.GetMemberRank:input_type -> dashboard.GetMemberRankRequest
+	7,  // 5: dashboard.DashboardService.GetTopMembers:input_type -> dashboard.GetTopMembersRequest
+	10, // 6: dashboard.DashboardService.GetDashboardStats:input_type -> dashboard.GetDashboardStatsRequest
+	1,  // 7: dashboard.DashboardService.StreamUpdates:output_type -> dashboard.UpdateResponse
+	4,  // 8: dashboard.DashboardService.IncrementScore:output_type -> dashboard.IncrementScoreResponse
+	6,  // 9: dashboard.DashboardService.GetMemberRank:output_type -> dashboard.GetMemberRankResponse
+	9,  // 10: dashboard.DashboardService.GetTopMembers:output_type -> dashboard.GetTopMembersResponse
+	11, // 11: dashboard.DashboardService.GetDashboardStats:output_type -> dashboard.GetDashboardStatsResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_dashboard_proto_init() }
@@ -297,7 +805,7 @@ func file_dashboard_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_dashboard_proto_rawDesc), len(file_dashboard_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

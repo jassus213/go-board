@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -9,7 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jassus213/go-board/dashboard/auth"
+	"github.com/jassus213/go-board/dashboard/core/usecase"
+	"github.com/jassus213/go-board/dashboard/repo/mocks"
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/mock"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -381,6 +388,87 @@ func TestRunHTTPServerHandlers(t *testing.T) {
 	})
 }
 
+func TestRunHTTPServerRESTHandlers(t *testing.T) {
+	lc := &lifecycleStub{}
+	addr := reserveTCPAddress(t)
+	cfg := Config{
+		HttpPort:        addr,
+		EnableWebSocket: false,
+	}
+
+	repo := mocks.NewDashboardRepository(t)
+	uc := usecase.New(repo)
+	verifier := &auth.StaticVerifier{Secret: "secret-token"}
+	runHTTPServer(lc, cfg, newWSHub(), uc, verifier, zap.NewNop())
+	if len(lc.hooks) != 1 {
+		t.Fatalf("expected lifecycle hook for http server")
+	}
+
+	hook := lc.hooks[0]
+	requireNoError(t, hook.OnStart(context.Background()))
+	t.Cleanup(func() {
+		_ = hook.OnStop(context.Background())
+	})
+
+	t.Run("rest_unauthorized_without_token", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, "http://"+addr+"/api/v1/dashboards/games/stats", http.NoBody)
+		if err != nil {
+			t.Fatalf("new request: %v", err)
+		}
+		resp := waitAndDo(t, req)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", resp.StatusCode)
+		}
+		_ = resp.Body.Close()
+	})
+
+	t.Run("increment_score_success", func(t *testing.T) {
+		repo.EXPECT().
+			IncrementMemberScore(mock.Anything, "games", "admin_user", 5.0).
+			Return(nil).
+			Once()
+		repo.EXPECT().
+			ViewMemberRank(mock.Anything, "games", "admin_user").
+			Return(int64(1), nil).
+			Once()
+
+		payload := map[string]float64{"increment": 5}
+		raw, err := json.Marshal(payload)
+		if err != nil {
+			t.Fatalf("marshal payload: %v", err)
+		}
+
+		req, err := http.NewRequest(
+			http.MethodPost,
+			"http://"+addr+"/api/v1/dashboards/games/members/user123/increment",
+			bytes.NewReader(raw),
+		)
+		if err != nil {
+			t.Fatalf("new request: %v", err)
+		}
+		req.Header.Set("Authorization", "Bearer secret-token")
+		req.Header.Set("Content-Type", "application/json")
+
+		resp := waitAndDo(t, req)
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			t.Fatalf("expected 200, got %d body=%s", resp.StatusCode, string(body))
+		}
+		defer func() { _ = resp.Body.Close() }()
+
+		var got struct {
+			MemberID string `json:"member_id"`
+			Rank     int64  `json:"rank"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		if got.MemberID != "admin_user" || got.Rank != 1 {
+			t.Fatalf("unexpected response: %+v", got)
+		}
+	})
+}
+
 func TestRunGRPCServerLifecycle(t *testing.T) {
 	t.Run("disabled mode does nothing", func(t *testing.T) {
 		lc := &lifecycleStub{}
@@ -487,6 +575,23 @@ func waitAndGet(t *testing.T, url string) *http.Response {
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("http get failed for %s: %v", url, err)
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
+func waitAndDo(t *testing.T, req *http.Request) *http.Response {
+	t.Helper()
+
+	client := &http.Client{Timeout: 2 * time.Second}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		resp, err := client.Do(req)
+		if err == nil {
+			return resp
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("http request failed for %s %s: %v", req.Method, req.URL.String(), err)
 		}
 		time.Sleep(25 * time.Millisecond)
 	}

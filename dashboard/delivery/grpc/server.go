@@ -72,6 +72,109 @@ func (s *Server) StreamUpdates(stream pb.DashboardService_StreamUpdatesServer) e
 	}
 }
 
+// IncrementScore handles unary score increment and returns updated rank.
+func (s *Server) IncrementScore(ctx context.Context, in *pb.IncrementScoreRequest) (*pb.IncrementScoreResponse, error) {
+	authID := getAuthMemberID(ctx)
+	if in.Dashboard == "" || authID == "" {
+		err := fmt.Errorf("%w: missing dashboard or member_id", core.ErrInvalidArgument)
+		pd := problem.FromError(err, http.StatusBadRequest, "/dashboard.DashboardService/IncrementScore")
+		return nil, withProblemDetails(&pd)
+	}
+
+	if in.MemberId != "" && in.MemberId != authID {
+		log.Printf("Security warning: user %s tried to update score for %s", authID, in.MemberId)
+	}
+
+	rank, err := s.uc.ProcessScoreUpdate(ctx, dto.IncrementScoreRequest{
+		Dashboard: in.Dashboard,
+		MemberID:  authID,
+		Value:     in.Increment,
+	})
+	if err != nil {
+		pd := problem.FromError(err, http.StatusInternalServerError, "/dashboard.DashboardService/IncrementScore")
+		return nil, withProblemDetails(&pd)
+	}
+
+	return &pb.IncrementScoreResponse{
+		MemberId: authID,
+		Rank:     rank,
+	}, nil
+}
+
+// GetMemberRank returns rank for authenticated member.
+func (s *Server) GetMemberRank(ctx context.Context, in *pb.GetMemberRankRequest) (*pb.GetMemberRankResponse, error) {
+	authID := getAuthMemberID(ctx)
+	if in.Dashboard == "" || authID == "" {
+		err := fmt.Errorf("%w: missing dashboard or member_id", core.ErrInvalidArgument)
+		pd := problem.FromError(err, http.StatusBadRequest, "/dashboard.DashboardService/GetMemberRank")
+		return nil, withProblemDetails(&pd)
+	}
+
+	if in.MemberId != "" && in.MemberId != authID {
+		log.Printf("Security warning: user %s tried to fetch rank for %s", authID, in.MemberId)
+	}
+
+	rank, err := s.uc.GetMemberRankHandler(ctx, dto.GetRankRequest{
+		Dashboard: in.Dashboard,
+		MemberID:  authID,
+	})
+	if err != nil {
+		pd := problem.FromError(err, http.StatusInternalServerError, "/dashboard.DashboardService/GetMemberRank")
+		return nil, withProblemDetails(&pd)
+	}
+
+	return &pb.GetMemberRankResponse{
+		MemberId: authID,
+		Rank:     rank,
+	}, nil
+}
+
+// GetTopMembers returns top N records from dashboard.
+func (s *Server) GetTopMembers(ctx context.Context, in *pb.GetTopMembersRequest) (*pb.GetTopMembersResponse, error) {
+	if in.Dashboard == "" {
+		err := fmt.Errorf("%w: missing dashboard", core.ErrInvalidArgument)
+		pd := problem.FromError(err, http.StatusBadRequest, "/dashboard.DashboardService/GetTopMembers")
+		return nil, withProblemDetails(&pd)
+	}
+
+	records, err := s.uc.GetTopMembersHandler(ctx, dto.GetTopRequest{
+		Dashboard: in.Dashboard,
+		Limit:     in.Limit,
+	})
+	if err != nil {
+		pd := problem.FromError(err, http.StatusInternalServerError, "/dashboard.DashboardService/GetTopMembers")
+		return nil, withProblemDetails(&pd)
+	}
+
+	members := make([]*pb.MemberRecord, 0, len(records))
+	for _, item := range records {
+		members = append(members, &pb.MemberRecord{
+			MemberId: item.ID,
+			Rank:     item.Rank,
+			Score:    item.Score,
+		})
+	}
+
+	return &pb.GetTopMembersResponse{Members: members}, nil
+}
+
+// GetDashboardStats returns dashboard total members.
+func (s *Server) GetDashboardStats(ctx context.Context, in *pb.GetDashboardStatsRequest) (*pb.GetDashboardStatsResponse, error) {
+	if in.Dashboard == "" {
+		err := fmt.Errorf("%w: missing dashboard", core.ErrInvalidArgument)
+		pd := problem.FromError(err, http.StatusBadRequest, "/dashboard.DashboardService/GetDashboardStats")
+		return nil, withProblemDetails(&pd)
+	}
+
+	total, err := s.uc.GetDashboardStatsHandler(ctx, in.Dashboard)
+	if err != nil {
+		pd := problem.FromError(err, http.StatusInternalServerError, "/dashboard.DashboardService/GetDashboardStats")
+		return nil, withProblemDetails(&pd)
+	}
+
+	return &pb.GetDashboardStatsResponse{TotalMembers: total}, nil
+}
+
 func (s *Server) handleUpdateRequest(
 	ctx context.Context,
 	stream pb.DashboardService_StreamUpdatesServer,
@@ -113,20 +216,11 @@ func (s *Server) handleUpdateRequest(
 // It expects the token in the "authorization" metadata field (e.g., "Bearer <token>").
 func AuthInterceptor(verifier auth.Verifier) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		md, ok := metadata.FromIncomingContext(ss.Context())
-		if !ok {
-			pd := problem.FromError(auth.ErrEmptyToken, http.StatusUnauthorized, info.FullMethod)
+		token, err := tokenFromMetadata(ss.Context())
+		if err != nil {
+			pd := problem.FromError(err, http.StatusUnauthorized, info.FullMethod)
 			return withProblemDetails(&pd)
 		}
-
-		values := md["authorization"]
-		if len(values) == 0 {
-			pd := problem.FromError(auth.ErrEmptyToken, http.StatusUnauthorized, info.FullMethod)
-			return withProblemDetails(&pd)
-		}
-
-		token := values[0]
-		token = strings.TrimPrefix(token, "Bearer ")
 
 		memberID, err := verifier.Verify(ss.Context(), token)
 		if err != nil {
@@ -144,6 +238,26 @@ func AuthInterceptor(verifier auth.Verifier) grpc.StreamServerInterceptor {
 	}
 }
 
+// AuthUnaryInterceptor validates token and enriches context with member ID.
+func AuthUnaryInterceptor(verifier auth.Verifier) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		token, err := tokenFromMetadata(ctx)
+		if err != nil {
+			pd := problem.FromError(err, http.StatusUnauthorized, info.FullMethod)
+			return nil, withProblemDetails(&pd)
+		}
+
+		memberID, err := verifier.Verify(ctx, token)
+		if err != nil {
+			log.Printf("gRPC auth failed: %v", err)
+			pd := problem.FromError(err, http.StatusForbidden, info.FullMethod)
+			return nil, withProblemDetails(&pd)
+		}
+
+		return handler(context.WithValue(ctx, memberIDKey, memberID), req)
+	}
+}
+
 // authenticatedStream wraps grpc.ServerStream to allow context modification.
 type authenticatedStream struct {
 	grpc.ServerStream
@@ -153,6 +267,26 @@ type authenticatedStream struct {
 // Context overrides the standard stream context to include the verified memberID.
 func (s *authenticatedStream) Context() context.Context {
 	return context.WithValue(s.ServerStream.Context(), memberIDKey, s.memberID)
+}
+
+func getAuthMemberID(ctx context.Context) string {
+	authID, _ := ctx.Value(memberIDKey).(string)
+	return authID
+}
+
+func tokenFromMetadata(ctx context.Context) (string, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", auth.ErrEmptyToken
+	}
+
+	values := md["authorization"]
+	if len(values) == 0 {
+		return "", auth.ErrEmptyToken
+	}
+
+	token := strings.TrimPrefix(values[0], "Bearer ")
+	return token, nil
 }
 
 func toProtoProblem(pd *core.ProblemDetails) *pb.ProblemDetails {

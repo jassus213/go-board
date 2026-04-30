@@ -19,7 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DashboardService_StreamUpdates_FullMethodName = "/dashboard.DashboardService/StreamUpdates"
+	DashboardService_StreamUpdates_FullMethodName     = "/dashboard.DashboardService/StreamUpdates"
+	DashboardService_IncrementScore_FullMethodName    = "/dashboard.DashboardService/IncrementScore"
+	DashboardService_GetMemberRank_FullMethodName     = "/dashboard.DashboardService/GetMemberRank"
+	DashboardService_GetTopMembers_FullMethodName     = "/dashboard.DashboardService/GetTopMembers"
+	DashboardService_GetDashboardStats_FullMethodName = "/dashboard.DashboardService/GetDashboardStats"
 )
 
 // DashboardServiceClient is the client API for DashboardService service.
@@ -27,6 +31,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DashboardServiceClient interface {
 	StreamUpdates(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[UpdateRequest, UpdateResponse], error)
+	IncrementScore(ctx context.Context, in *IncrementScoreRequest, opts ...grpc.CallOption) (*IncrementScoreResponse, error)
+	GetMemberRank(ctx context.Context, in *GetMemberRankRequest, opts ...grpc.CallOption) (*GetMemberRankResponse, error)
+	GetTopMembers(ctx context.Context, in *GetTopMembersRequest, opts ...grpc.CallOption) (*GetTopMembersResponse, error)
+	GetDashboardStats(ctx context.Context, in *GetDashboardStatsRequest, opts ...grpc.CallOption) (*GetDashboardStatsResponse, error)
 }
 
 type dashboardServiceClient struct {
@@ -50,11 +58,55 @@ func (c *dashboardServiceClient) StreamUpdates(ctx context.Context, opts ...grpc
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DashboardService_StreamUpdatesClient = grpc.BidiStreamingClient[UpdateRequest, UpdateResponse]
 
+func (c *dashboardServiceClient) IncrementScore(ctx context.Context, in *IncrementScoreRequest, opts ...grpc.CallOption) (*IncrementScoreResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IncrementScoreResponse)
+	err := c.cc.Invoke(ctx, DashboardService_IncrementScore_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dashboardServiceClient) GetMemberRank(ctx context.Context, in *GetMemberRankRequest, opts ...grpc.CallOption) (*GetMemberRankResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMemberRankResponse)
+	err := c.cc.Invoke(ctx, DashboardService_GetMemberRank_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dashboardServiceClient) GetTopMembers(ctx context.Context, in *GetTopMembersRequest, opts ...grpc.CallOption) (*GetTopMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTopMembersResponse)
+	err := c.cc.Invoke(ctx, DashboardService_GetTopMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dashboardServiceClient) GetDashboardStats(ctx context.Context, in *GetDashboardStatsRequest, opts ...grpc.CallOption) (*GetDashboardStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDashboardStatsResponse)
+	err := c.cc.Invoke(ctx, DashboardService_GetDashboardStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DashboardServiceServer is the server API for DashboardService service.
 // All implementations must embed UnimplementedDashboardServiceServer
 // for forward compatibility.
 type DashboardServiceServer interface {
 	StreamUpdates(grpc.BidiStreamingServer[UpdateRequest, UpdateResponse]) error
+	IncrementScore(context.Context, *IncrementScoreRequest) (*IncrementScoreResponse, error)
+	GetMemberRank(context.Context, *GetMemberRankRequest) (*GetMemberRankResponse, error)
+	GetTopMembers(context.Context, *GetTopMembersRequest) (*GetTopMembersResponse, error)
+	GetDashboardStats(context.Context, *GetDashboardStatsRequest) (*GetDashboardStatsResponse, error)
 	mustEmbedUnimplementedDashboardServiceServer()
 }
 
@@ -67,6 +119,18 @@ type UnimplementedDashboardServiceServer struct{}
 
 func (UnimplementedDashboardServiceServer) StreamUpdates(grpc.BidiStreamingServer[UpdateRequest, UpdateResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamUpdates not implemented")
+}
+func (UnimplementedDashboardServiceServer) IncrementScore(context.Context, *IncrementScoreRequest) (*IncrementScoreResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IncrementScore not implemented")
+}
+func (UnimplementedDashboardServiceServer) GetMemberRank(context.Context, *GetMemberRankRequest) (*GetMemberRankResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMemberRank not implemented")
+}
+func (UnimplementedDashboardServiceServer) GetTopMembers(context.Context, *GetTopMembersRequest) (*GetTopMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTopMembers not implemented")
+}
+func (UnimplementedDashboardServiceServer) GetDashboardStats(context.Context, *GetDashboardStatsRequest) (*GetDashboardStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDashboardStats not implemented")
 }
 func (UnimplementedDashboardServiceServer) mustEmbedUnimplementedDashboardServiceServer() {}
 func (UnimplementedDashboardServiceServer) testEmbeddedByValue()                          {}
@@ -96,13 +160,102 @@ func _DashboardService_StreamUpdates_Handler(srv interface{}, stream grpc.Server
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DashboardService_StreamUpdatesServer = grpc.BidiStreamingServer[UpdateRequest, UpdateResponse]
 
+func _DashboardService_IncrementScore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IncrementScoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).IncrementScore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DashboardService_IncrementScore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).IncrementScore(ctx, req.(*IncrementScoreRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DashboardService_GetMemberRank_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMemberRankRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetMemberRank(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DashboardService_GetMemberRank_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetMemberRank(ctx, req.(*GetMemberRankRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DashboardService_GetTopMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTopMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetTopMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DashboardService_GetTopMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetTopMembers(ctx, req.(*GetTopMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DashboardService_GetDashboardStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDashboardStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetDashboardStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DashboardService_GetDashboardStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetDashboardStats(ctx, req.(*GetDashboardStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DashboardService_ServiceDesc is the grpc.ServiceDesc for DashboardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var DashboardService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "dashboard.DashboardService",
 	HandlerType: (*DashboardServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "IncrementScore",
+			Handler:    _DashboardService_IncrementScore_Handler,
+		},
+		{
+			MethodName: "GetMemberRank",
+			Handler:    _DashboardService_GetMemberRank_Handler,
+		},
+		{
+			MethodName: "GetTopMembers",
+			Handler:    _DashboardService_GetTopMembers_Handler,
+		},
+		{
+			MethodName: "GetDashboardStats",
+			Handler:    _DashboardService_GetDashboardStats_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "StreamUpdates",

@@ -270,6 +270,10 @@ On error, WebSocket responses include typed Problem Details:
 ```protobuf
 service DashboardService {
   rpc StreamUpdates (stream UpdateRequest) returns (stream UpdateResponse);
+  rpc IncrementScore (IncrementScoreRequest) returns (IncrementScoreResponse);
+  rpc GetMemberRank (GetMemberRankRequest) returns (GetMemberRankResponse);
+  rpc GetTopMembers (GetTopMembersRequest) returns (GetTopMembersResponse);
+  rpc GetDashboardStats (GetDashboardStatsRequest) returns (GetDashboardStatsResponse);
 }
 
 message UpdateRequest {
@@ -293,11 +297,113 @@ message ProblemDetails {
   string instance = 5;
   string code = 6;
 }
+
+message IncrementScoreRequest {
+  string dashboard = 1;
+  string member_id = 2;
+  double increment = 3;
+}
+
+message IncrementScoreResponse {
+  string member_id = 1;
+  int64 rank = 2;
+}
 ```
 
 Auth failures in the gRPC interceptor are returned as `grpc status` errors with:
 - code mapped from `ProblemDetails.status` (`Unauthenticated`, `PermissionDenied`, etc.),
 - `ProblemDetails` attached to status `details` for typed client-side handling.
+
+### REST API (Gin)
+
+All REST routes are under `http://localhost:8080/api/v1` and require `Authorization: Bearer <AUTH_SECRET>`.
+
+- `POST /dashboards/:dashboard/members/:member_id/increment` with body `{"increment": 10.5}`
+- `GET /dashboards/:dashboard/members/:member_id/rank`
+- `GET /dashboards/:dashboard/top?limit=10`
+- `GET /dashboards/:dashboard/stats`
+
+Errors are returned as `application/problem+json` payloads using `ProblemDetails`.
+
+### API Cheat Sheet
+
+Set shared variables:
+```bash
+TOKEN=super-secret-key
+BASE_URL=http://localhost:8080/api/v1
+GRPC_ADDR=localhost:50051
+```
+
+**REST (`curl`)**
+```bash
+# Increment authenticated member score
+curl -X POST "$BASE_URL/dashboards/global/members/user123/increment" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"increment":10.5}'
+
+# Get authenticated member rank
+curl -X GET "$BASE_URL/dashboards/global/members/user123/rank" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get top members
+curl -X GET "$BASE_URL/dashboards/global/top?limit=5" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get dashboard stats
+curl -X GET "$BASE_URL/dashboards/global/stats" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**gRPC unary (`grpcurl`)**
+```bash
+# Increment score
+grpcurl -plaintext \
+  -import-path dashboard/delivery/grpc/proto \
+  -proto dashboard.proto \
+  -H "authorization: Bearer $TOKEN" \
+  -d '{"dashboard":"global","member_id":"user123","increment":10.5}' \
+  $GRPC_ADDR dashboard.DashboardService/IncrementScore
+
+# Get member rank
+grpcurl -plaintext \
+  -import-path dashboard/delivery/grpc/proto \
+  -proto dashboard.proto \
+  -H "authorization: Bearer $TOKEN" \
+  -d '{"dashboard":"global","member_id":"user123"}' \
+  $GRPC_ADDR dashboard.DashboardService/GetMemberRank
+
+# Get top members
+grpcurl -plaintext \
+  -import-path dashboard/delivery/grpc/proto \
+  -proto dashboard.proto \
+  -H "authorization: Bearer $TOKEN" \
+  -d '{"dashboard":"global","limit":5}' \
+  $GRPC_ADDR dashboard.DashboardService/GetTopMembers
+
+# Get dashboard stats
+grpcurl -plaintext \
+  -import-path dashboard/delivery/grpc/proto \
+  -proto dashboard.proto \
+  -H "authorization: Bearer $TOKEN" \
+  -d '{"dashboard":"global"}' \
+  $GRPC_ADDR dashboard.DashboardService/GetDashboardStats
+```
+
+**Error example (`ProblemDetails`)**
+```bash
+curl -i -X GET "$BASE_URL/dashboards/global/stats"
+```
+```json
+{
+  "type": "urn:goboard:auth:missing-token",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "authentication token is required",
+  "instance": "/api/v1/dashboards/global/stats",
+  "code": "auth_missing_token"
+}
+```
 
 ### Known Runtime Behavior
 

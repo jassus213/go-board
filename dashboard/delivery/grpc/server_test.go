@@ -5,11 +5,14 @@ import (
 	"io"
 	"testing"
 
+	"github.com/jassus213/go-board/dashboard/core/entity"
 	"github.com/jassus213/go-board/dashboard/core/usecase"
 	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
 	"github.com/jassus213/go-board/dashboard/repo/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type mockStream struct {
@@ -159,5 +162,60 @@ func TestStreamUpdates_Errors(t *testing.T) {
 
 		err := srv.StreamUpdates(stream)
 		assert.NoError(t, err)
+	})
+}
+
+func TestUnaryMethods(t *testing.T) {
+	repo := mocks.NewDashboardRepository(t)
+	uc := usecase.New(repo)
+	srv := NewServer(uc)
+	ctx := context.WithValue(context.Background(), memberIDKey, "user_1")
+
+	t.Run("increment_score_success", func(t *testing.T) {
+		repo.EXPECT().
+			IncrementMemberScore(mock.Anything, "games", "user_1", 10.0).
+			Return(nil).
+			Once()
+		repo.EXPECT().
+			ViewMemberRank(mock.Anything, "games", "user_1").
+			Return(int64(2), nil).
+			Once()
+
+		resp, err := srv.IncrementScore(ctx, &pb.IncrementScoreRequest{
+			Dashboard: "games",
+			MemberId:  "other_user",
+			Increment: 10,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), resp.Rank)
+		assert.Equal(t, "user_1", resp.MemberId)
+	})
+
+	t.Run("get_top_members_success", func(t *testing.T) {
+		repo.EXPECT().
+			GetTopMembers(mock.Anything, "games", int64(3)).
+			Return([]entity.DashboardRecord{
+				{ID: "u1", Rank: 1, Score: 10},
+				{ID: "u2", Rank: 2, Score: 8},
+			}, nil).
+			Once()
+
+		resp, err := srv.GetTopMembers(ctx, &pb.GetTopMembersRequest{
+			Dashboard: "games",
+			Limit:     3,
+		})
+		assert.NoError(t, err)
+		if assert.Len(t, resp.Members, 2) {
+			assert.Equal(t, "u1", resp.Members[0].MemberId)
+			assert.Equal(t, int64(1), resp.Members[0].Rank)
+		}
+	})
+
+	t.Run("invalid_argument_error", func(t *testing.T) {
+		_, err := srv.GetDashboardStats(ctx, &pb.GetDashboardStatsRequest{})
+		assert.Error(t, err)
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
 	})
 }
