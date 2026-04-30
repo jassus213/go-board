@@ -35,7 +35,7 @@ jobs:
         with:
           version: latest
           args: --timeout=5m
-          working-directory: pkg/dashboard
+          working-directory: dashboard
 
   test:
     name: Test
@@ -68,10 +68,16 @@ jobs:
           go work use -r .
 
       - name: Download dependencies
-        run: go mod download
+        run: |
+          go mod download
+          cd dashboard
+          go mod download
 
       - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./... ./pkg/dashboard/...
+        run: |
+          go test -v -race ./...
+          cd dashboard
+          go test -v -race -coverprofile=../coverage.out -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -123,6 +129,7 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [build]
+    if: ${{ hashFiles('deploy/docker/Dashboard.Dockerfile') != '' }}
 
     steps:
       - name: Checkout code
@@ -180,9 +187,9 @@ jobs:
 
       - name: Run benchmarks
         run: |
-          cd pkg/dashboard
-          go test -bench=. -benchmem ./auth/... > ../../benchmark.txt || echo "No benchmarks found"
-          cat ../../benchmark.txt
+          cd dashboard
+          go test -bench=. -benchmem ./auth/... > ../benchmark.txt || echo "No benchmarks found"
+          cat ../benchmark.txt
 
       - name: Comment benchmark results
         uses: actions/github-script@v7
