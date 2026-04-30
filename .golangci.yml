@@ -1,0 +1,88 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    # Корректность
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+
+    # Безопасность
+    - gosec
+
+    # Сложность
+    - cyclop
+    - funlen
+    - gocognit
+
+    # Хорошие практики
+    - gocritic
+    - bodyclose
+    - nilerr
+    - errorlint
+    - misspell
+    - godot
+    - whitespace
+    - noctx
+    - sqlclosecheck
+    - unparam
+    - exhaustive
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - git.ddos-guard.net/backoffice/team-portal
+
+linters-settings:
+  cyclop:
+    max-complexity: 10
+
+  funlen:
+    lines: 80
+    statements: 50
+
+  gocognit:
+    min-complexity: 15
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+
+  gosec:
+    excludes:
+      - G115
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - errcheck
+        - gosec
+        - cyclop
+        - godot
+
+    - path: "internal/tests/"
+      linters:
+        - funlen
+        - gocognit
+        - cyclop
+        - godot
+
+  max-issues-per-linter: 50
+  max-same-issues: 5
+
+output:
+  formats:
+    text:
+      path: stdout
+  sort-results: true

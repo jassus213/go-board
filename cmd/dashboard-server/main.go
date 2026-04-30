@@ -5,16 +5,19 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/jassus213/go-board/dashboard/auth"
-	"github.com/jassus213/go-board/dashboard/dal/redis"
+	"github.com/jassus213/go-board/dashboard/core/usecase"
 	"github.com/jassus213/go-board/dashboard/delivery/grpc"
 	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
 	"github.com/jassus213/go-board/dashboard/delivery/ws"
+	"github.com/jassus213/go-board/dashboard/repo/redis"
 
 	"github.com/joho/godotenv"
 	goredis "github.com/redis/go-redis/v9"
@@ -38,6 +41,7 @@ func main() {
 			newLogger,
 			newRedisClient,
 			newRepository,
+			newUseCase,
 			newAuthVerifier,
 			newWSHub,
 		),
@@ -66,6 +70,10 @@ type Config struct {
 	CORSAllowedOrigins string
 	// CORSAllowCredentials indicates whether credentials (cookies, auth headers) are allowed.
 	CORSAllowCredentials bool
+	// EnableWebSocket toggles WebSocket endpoint and hub runtime.
+	EnableWebSocket bool
+	// EnableGRPC toggles gRPC server startup.
+	EnableGRPC bool
 }
 
 // --- Providers (Dependency Injection) ---
@@ -95,6 +103,11 @@ func newRepository(rdb *goredis.Client) *redis.DashboardRedisRepository {
 	return redis.NewDashboardRedisRepository(rdb, "prod:")
 }
 
+// newUseCase creates a usecase.
+func newUseCase(repo *redis.DashboardRedisRepository) *usecase.BoardUseCase {
+	return usecase.New(repo)
+}
+
 // newAuthVerifier creates a static token verifier for authentication.
 func newAuthVerifier(cfg Config) *auth.StaticVerifier {
 	return &auth.StaticVerifier{Secret: cfg.AuthSecret}
@@ -108,13 +121,17 @@ func newWSHub() *ws.Hub {
 // --- Invokers (Lifecycle Hooks & Startup) ---
 
 // runWSHub starts the internal WebSocket hub processing loop in a background goroutine.
-func runWSHub(hub *ws.Hub) {
+func runWSHub(cfg Config, hub *ws.Hub, logger *zap.Logger) {
+	if !cfg.EnableWebSocket {
+		logger.Info("WebSocket mode is disabled")
+		return
+	}
 	go hub.Run()
 }
 
 // runHTTPServer configures and starts the HTTP server, including WebSocket and health check endpoints.
 // It registers OnStart and OnStop hooks to ensure the server starts after DI and shuts down gracefully.
-func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, repo *redis.DashboardRedisRepository, verifier *auth.StaticVerifier, logger *zap.Logger) {
+func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, uc *usecase.BoardUseCase, verifier *auth.StaticVerifier, logger *zap.Logger) {
 	mux := http.NewServeMux()
 
 	// Create CORS config for WebSocket
@@ -123,24 +140,37 @@ func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, repo *redis.Dashboa
 		AllowCredentials: cfg.CORSAllowCredentials,
 	}
 
-	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ws.ServeWs(hub, repo, verifier, corsConfig, w, r)
-	})
+	if cfg.EnableWebSocket {
+		mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+			ws.ServeWs(hub, uc, verifier, corsConfig, w, r)
+		})
+	} else {
+		mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "websocket mode is disabled", http.StatusServiceUnavailable)
+		})
+	}
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			logger.Warn("failed to write health response", zap.Error(err))
+		}
 	})
 
 	srv := &http.Server{
-		Addr:    cfg.HttpPort,
-		Handler: mux,
+		Addr:              cfg.HttpPort,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			logger.Info("HTTP server starting", zap.String("port", cfg.HttpPort))
-			go srv.ListenAndServe()
+			go func() {
+				if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+					logger.Error("HTTP server stopped unexpectedly", zap.Error(err))
+				}
+			}()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
@@ -152,23 +182,32 @@ func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, repo *redis.Dashboa
 
 // runGRPCServer configures and starts the gRPC server with the AuthInterceptor enabled.
 // It handles the registration of the DashboardService and registers lifecycle hooks for graceful startup/shutdown.
-func runGRPCServer(lc fx.Lifecycle, cfg Config, repo *redis.DashboardRedisRepository, verifier *auth.StaticVerifier, logger *zap.Logger) {
+func runGRPCServer(lc fx.Lifecycle, cfg Config, uc *usecase.BoardUseCase, verifier *auth.StaticVerifier, logger *zap.Logger) {
+	if !cfg.EnableGRPC {
+		logger.Info("gRPC mode is disabled")
+		return
+	}
+
 	opts := []googlegrpc.ServerOption{
 		googlegrpc.StreamInterceptor(grpc.AuthInterceptor(verifier)),
 	}
 
 	grpcServer := googlegrpc.NewServer(opts...)
-	dashboardService := grpc.NewServer(repo)
+	dashboardService := grpc.NewServer(uc)
 	pb.RegisterDashboardServiceServer(grpcServer, dashboardService)
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			lis, err := net.Listen("tcp", cfg.GrpcPort)
+			lis, err := (&net.ListenConfig{}).Listen(ctx, "tcp", cfg.GrpcPort)
 			if err != nil {
 				return err
 			}
 			logger.Info("gRPC server starting", zap.String("port", cfg.GrpcPort))
-			go grpcServer.Serve(lis)
+			go func() {
+				if err := grpcServer.Serve(lis); err != nil {
+					logger.Error("gRPC server stopped unexpectedly", zap.Error(err))
+				}
+			}()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
@@ -191,6 +230,10 @@ func loadConfig() Config {
 		allowCredentials = true
 	}
 
+	enableWebSocket := getBoolEnv("ENABLE_WEBSOCKET", true)
+	enableGRPC := getBoolEnv("ENABLE_GRPC", true)
+	enableWebSocket, enableGRPC = applyRuntimeModeFlags(enableWebSocket, enableGRPC, os.Args[1:])
+
 	return Config{
 		RedisAddr:            getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPass:            getEnv("REDIS_PASS", ""),
@@ -199,6 +242,8 @@ func loadConfig() Config {
 		AuthSecret:           getEnv("AUTH_SECRET", "super-secret-key"),
 		CORSAllowedOrigins:   getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
 		CORSAllowCredentials: allowCredentials,
+		EnableWebSocket:      enableWebSocket,
+		EnableGRPC:           enableGRPC,
 	}
 }
 
@@ -209,6 +254,39 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func getBoolEnv(key string, fallback bool) bool {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return fallback
+	}
+
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
+}
+
+func applyRuntimeModeFlags(enableWS, enableGRPC bool, args []string) (bool, bool) {
+	for _, arg := range args {
+		switch arg {
+		case "--ws", "--enable-ws":
+			enableWS = true
+		case "--no-ws", "--disable-ws":
+			enableWS = false
+		case "--grpc", "--enable-grpc":
+			enableGRPC = true
+		case "--no-grpc", "--disable-grpc":
+			enableGRPC = false
+		}
+	}
+
+	return enableWS, enableGRPC
 }
 
 // parseCORSOrigins parses a comma-separated list of allowed origins.
