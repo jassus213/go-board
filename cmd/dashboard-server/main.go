@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -67,6 +68,10 @@ type Config struct {
 	GrpcPort string
 	// AuthSecret is a shared secret used by the StaticVerifier for simple token validation.
 	AuthSecret string
+	// JWTSecret is used by JWT verifier mode.
+	JWTSecret string
+	// AuthMode selects verifier implementation: static, jwt, noop.
+	AuthMode string
 	// CORSAllowedOrigins is a comma-separated list of allowed origins for WebSocket connections.
 	CORSAllowedOrigins string
 	// CORSAllowCredentials indicates whether credentials (cookies, auth headers) are allowed.
@@ -109,9 +114,21 @@ func newUseCase(repo *redis.DashboardRedisRepository) *usecase.BoardUseCase {
 	return usecase.New(repo)
 }
 
-// newAuthVerifier creates a static token verifier for authentication.
-func newAuthVerifier(cfg Config) *auth.StaticVerifier {
-	return &auth.StaticVerifier{Secret: cfg.AuthSecret}
+// newAuthVerifier creates a token verifier based on configured auth mode.
+func newAuthVerifier(cfg Config) (auth.Verifier, error) {
+	switch strings.ToLower(strings.TrimSpace(cfg.AuthMode)) {
+	case "", "static":
+		return &auth.StaticVerifier{Secret: cfg.AuthSecret}, nil
+	case "jwt":
+		if strings.TrimSpace(cfg.JWTSecret) == "" {
+			return nil, fmt.Errorf("auth mode jwt requires JWT_SECRET")
+		}
+		return auth.NewJWTVerifier([]byte(cfg.JWTSecret)), nil
+	case "noop":
+		return &auth.NoOpVerifier{}, nil
+	default:
+		return nil, fmt.Errorf("unsupported AUTH_MODE: %s", cfg.AuthMode)
+	}
 }
 
 // newWSHub creates a new WebSocket Hub to manage active connections.
@@ -132,7 +149,7 @@ func runWSHub(cfg Config, hub *ws.Hub, logger *zap.Logger) {
 
 // runHTTPServer configures and starts the HTTP server, including WebSocket and health check endpoints.
 // It registers OnStart and OnStop hooks to ensure the server starts after DI and shuts down gracefully.
-func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, uc *usecase.BoardUseCase, verifier *auth.StaticVerifier, logger *zap.Logger) {
+func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, uc *usecase.BoardUseCase, verifier auth.Verifier, logger *zap.Logger) {
 	router := rest.NewRouter(&rest.Params{
 		Hub:      hub,
 		UseCase:  uc,
@@ -169,7 +186,7 @@ func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, uc *usecase.BoardUs
 
 // runGRPCServer configures and starts the gRPC server with the AuthInterceptor enabled.
 // It handles the registration of the DashboardService and registers lifecycle hooks for graceful startup/shutdown.
-func runGRPCServer(lc fx.Lifecycle, cfg Config, uc *usecase.BoardUseCase, verifier *auth.StaticVerifier, logger *zap.Logger) {
+func runGRPCServer(lc fx.Lifecycle, cfg Config, uc *usecase.BoardUseCase, verifier auth.Verifier, logger *zap.Logger) {
 	if !cfg.EnableGRPC {
 		logger.Info("gRPC mode is disabled")
 		return
@@ -228,6 +245,8 @@ func loadConfig() Config {
 		HttpPort:             getEnv("HTTP_PORT", ":8080"),
 		GrpcPort:             getEnv("GRPC_PORT", ":50051"),
 		AuthSecret:           getEnv("AUTH_SECRET", "super-secret-key"),
+		JWTSecret:            getEnv("JWT_SECRET", ""),
+		AuthMode:             getEnv("AUTH_MODE", "static"),
 		CORSAllowedOrigins:   getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
 		CORSAllowCredentials: allowCredentials,
 		EnableWebSocket:      enableWebSocket,

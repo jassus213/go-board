@@ -172,6 +172,8 @@ func TestLoadConfig(t *testing.T) {
 			cfg.HttpPort != ":8080" ||
 			cfg.GrpcPort != ":50051" ||
 			cfg.AuthSecret != "super-secret-key" ||
+			cfg.JWTSecret != "" ||
+			cfg.AuthMode != "static" ||
 			cfg.CORSAllowedOrigins != "http://localhost:3000" {
 			t.Fatalf("unexpected defaults: %+v", cfg)
 		}
@@ -192,6 +194,8 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("HTTP_PORT", ":18080")
 		t.Setenv("GRPC_PORT", ":15051")
 		t.Setenv("AUTH_SECRET", "custom-secret")
+		t.Setenv("JWT_SECRET", "jwt-secret")
+		t.Setenv("AUTH_MODE", "jwt")
 		t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com")
 		t.Setenv("CORS_ALLOW_CREDENTIALS", "1")
 		t.Setenv("ENABLE_WEBSOCKET", "false")
@@ -207,6 +211,8 @@ func TestLoadConfig(t *testing.T) {
 			cfg.HttpPort != ":18080" ||
 			cfg.GrpcPort != ":15051" ||
 			cfg.AuthSecret != "custom-secret" ||
+			cfg.JWTSecret != "jwt-secret" ||
+			cfg.AuthMode != "jwt" ||
 			cfg.CORSAllowedOrigins != "https://app.example.com" {
 			t.Fatalf("unexpected env config: %+v", cfg)
 		}
@@ -275,12 +281,33 @@ func TestProviders(t *testing.T) {
 	})
 
 	t.Run("newAuthVerifier", func(t *testing.T) {
-		verifier := newAuthVerifier(Config{AuthSecret: "secret"})
-		if verifier == nil {
-			t.Fatalf("newAuthVerifier() returned nil")
+		staticVerifier, err := newAuthVerifier(Config{AuthMode: "static", AuthSecret: "secret"})
+		if err != nil || staticVerifier == nil {
+			t.Fatalf("newAuthVerifier(static) failed: %v", err)
 		}
-		if verifier.Secret != "secret" {
-			t.Fatalf("unexpected verifier secret: %q", verifier.Secret)
+		if _, ok := staticVerifier.(*auth.StaticVerifier); !ok {
+			t.Fatalf("expected *auth.StaticVerifier, got %T", staticVerifier)
+		}
+
+		jwtVerifier, err := newAuthVerifier(Config{AuthMode: "jwt", JWTSecret: "jwt-secret"})
+		if err != nil || jwtVerifier == nil {
+			t.Fatalf("newAuthVerifier(jwt) failed: %v", err)
+		}
+		if _, ok := jwtVerifier.(*auth.JWTVerifier); !ok {
+			t.Fatalf("expected *auth.JWTVerifier, got %T", jwtVerifier)
+		}
+
+		noopVerifier, err := newAuthVerifier(Config{AuthMode: "noop"})
+		if err != nil || noopVerifier == nil {
+			t.Fatalf("newAuthVerifier(noop) failed: %v", err)
+		}
+		if _, ok := noopVerifier.(*auth.NoOpVerifier); !ok {
+			t.Fatalf("expected *auth.NoOpVerifier, got %T", noopVerifier)
+		}
+
+		_, err = newAuthVerifier(Config{AuthMode: "jwt"})
+		if err == nil {
+			t.Fatalf("expected jwt mode without secret to fail")
 		}
 	})
 
@@ -517,6 +544,8 @@ func unsetEnvForLoadConfig(t *testing.T) func() {
 		"HTTP_PORT",
 		"GRPC_PORT",
 		"AUTH_SECRET",
+		"JWT_SECRET",
+		"AUTH_MODE",
 		"CORS_ALLOWED_ORIGINS",
 		"CORS_ALLOW_CREDENTIALS",
 		"ENABLE_WEBSOCKET",

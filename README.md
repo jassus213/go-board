@@ -211,8 +211,14 @@ GRPC_PORT=:50051
 REDIS_ADDR=localhost:6379
 REDIS_PASS=
 
-# Auth (current runtime uses StaticVerifier)
+# Auth mode: static, jwt, noop
+AUTH_MODE=static
+
+# Static mode secret (used when AUTH_MODE=static)
 AUTH_SECRET=super-secret-key
+
+# JWT mode secret (used when AUTH_MODE=jwt)
+JWT_SECRET=your-jwt-secret
 
 # CORS
 CORS_ALLOWED_ORIGINS=http://localhost:3000
@@ -223,7 +229,7 @@ ENABLE_WEBSOCKET=true
 ENABLE_GRPC=true
 ```
 
-> Note: `cmd/dashboard-server/env.example` includes some extra variables from earlier iterations that are not all consumed by current runtime.
+Runtime now consumes `AUTH_MODE`, `AUTH_SECRET`, and `JWT_SECRET`.
 
 ## 📡 API Reference
 
@@ -231,7 +237,7 @@ ENABLE_GRPC=true
 
 **Connect**
 ```text
-ws://localhost:8080/ws?token=<AUTH_SECRET>
+ws://localhost:8080/ws?token=<TOKEN>
 ```
 
 **Send Score Update**
@@ -316,7 +322,8 @@ Auth failures in the gRPC interceptor are returned as `grpc status` errors with:
 
 ### REST API (Gin)
 
-All REST routes are under `http://localhost:8080/api/v1` and require `Authorization: Bearer <AUTH_SECRET>`.
+All REST routes are under `http://localhost:8080/api/v1` and require `Authorization: Bearer <TOKEN>`.
+`<TOKEN>` depends on `AUTH_MODE` (`AUTH_SECRET` for `static`, JWT for `jwt`).
 
 - `POST /dashboards/:dashboard/members/:member_id/increment` with body `{"increment": 10.5}`
 - `GET /dashboards/:dashboard/members/:member_id/rank`
@@ -407,8 +414,10 @@ curl -i -X GET "$BASE_URL/dashboards/global/stats"
 
 ### Known Runtime Behavior
 
-- Runtime in `cmd/dashboard-server` currently wires `auth.StaticVerifier`.
-- For valid token, authenticated identity resolves to fixed `"admin_user"`.
+- Runtime in `cmd/dashboard-server` supports `AUTH_MODE=static|jwt|noop`.
+- In `static` mode, valid token resolves to fixed `"admin_user"`.
+- In `jwt` mode, identity is extracted from JWT `user_id` claim.
+- `noop` mode is only for local development/testing and should not be used in production.
 - Incoming `member_id` is validated/overridden by authenticated identity logic in transport handlers.
 
 ### Repository Interface
@@ -531,7 +540,9 @@ For an expanded contributor checklist, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
   - Ensure Redis is running on `REDIS_ADDR` (default `localhost:6379`).
   - Quick check: `redis-cli -h localhost -p 6379 ping`.
 - **401/403 on WebSocket/gRPC**
-  - Ensure token matches `AUTH_SECRET` in current runtime mode.
+  - Ensure token format matches `AUTH_MODE`:
+    - `static`: token must equal `AUTH_SECRET`
+    - `jwt`: token must be a valid JWT signed with `JWT_SECRET` and include `user_id`
   - For gRPC, include `authorization` metadata (`Bearer <token>` or plain token).
 - **Browser WS rejected by CORS**
   - Add your frontend origin to `CORS_ALLOWED_ORIGINS`.
