@@ -30,13 +30,12 @@ jobs:
           go work init
           go work use -r .
 
-      - name: Install golangci-lint (v2)
-        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
-
-      - name: Run golangci-lint
-        run: |
-          cd dashboard
-          golangci-lint run --timeout=5m
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.1.6
+          working-directory: dashboard
+          args: --timeout=5m
 
   test:
     name: Test
