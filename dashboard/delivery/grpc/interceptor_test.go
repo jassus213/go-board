@@ -40,6 +40,12 @@ func TestAuthInterceptor(t *testing.T) {
 		err := interceptor(nil, &mockStream{ctx: ctx}, nil, handler)
 		assert.NoError(t, err)
 	})
+
+	t.Run("missing_authorization_header", func(t *testing.T) {
+		ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-id", "1"))
+		err := interceptor(nil, &mockStream{ctx: ctx}, nil, nil)
+		assert.ErrorContains(t, err, "missing authorization token")
+	})
 }
 
 func TestAuthInterceptor_Fail(t *testing.T) {
@@ -51,5 +57,17 @@ func TestAuthInterceptor_Fail(t *testing.T) {
 		ctx := metadata.NewIncomingContext(context.Background(), md)
 		err := interceptor(nil, &mockStream{ctx: ctx}, nil, nil)
 		assert.Error(t, err)
+	})
+
+	t.Run("handler_error_passthrough", func(t *testing.T) {
+		md := metadata.Pairs("authorization", "Bearer correct")
+		ctx := metadata.NewIncomingContext(context.Background(), md)
+
+		handler := func(srv interface{}, stream grpc.ServerStream) error {
+			return assert.AnError
+		}
+
+		err := interceptor(nil, &mockStream{ctx: ctx}, nil, handler)
+		assert.ErrorIs(t, err, assert.AnError)
 	})
 }

@@ -102,4 +102,55 @@ func TestStreamUpdates_Errors(t *testing.T) {
 		err := srv.StreamUpdates(stream)
 		assert.Error(t, err)
 	})
+
+	t.Run("send_error_stops_stream", func(t *testing.T) {
+		testAuthID := "user_1"
+		ctx := context.WithValue(context.Background(), memberIDKey, testAuthID)
+		stream := &mockStream{ctx: ctx}
+
+		req := &pb.UpdateRequest{
+			Dashboard: "test_db",
+			MemberId:  "user_1",
+			Increment: 2,
+		}
+
+		stream.On("Recv").Return(req, nil).Once()
+		repo.EXPECT().
+			IncrementMemberScore(mock.Anything, "test_db", "user_1", 2.0).
+			Return(nil).
+			Once()
+		repo.EXPECT().
+			ViewMemberRank(mock.Anything, "test_db", "user_1").
+			Return(int64(3), nil).
+			Once()
+		stream.On("Send", mock.AnythingOfType("*gen.UpdateResponse")).Return(assert.AnError).Once()
+
+		err := srv.StreamUpdates(stream)
+		assert.Error(t, err)
+	})
+
+	t.Run("usecase_error_is_returned_in_response", func(t *testing.T) {
+		testAuthID := "user_1"
+		ctx := context.WithValue(context.Background(), memberIDKey, testAuthID)
+		stream := &mockStream{ctx: ctx}
+
+		req := &pb.UpdateRequest{
+			Dashboard: "test_db",
+			MemberId:  "user_1",
+			Increment: 1,
+		}
+
+		stream.On("Recv").Return(req, nil).Once()
+		stream.On("Recv").Return(nil, io.EOF).Once()
+		repo.EXPECT().
+			IncrementMemberScore(mock.Anything, "test_db", "user_1", 1.0).
+			Return(assert.AnError).
+			Once()
+		stream.On("Send", mock.MatchedBy(func(r *pb.UpdateResponse) bool {
+			return r.MemberId == testAuthID && r.Error != "" && r.Rank == 0
+		})).Return(nil).Once()
+
+		err := srv.StreamUpdates(stream)
+		assert.NoError(t, err)
+	})
 }

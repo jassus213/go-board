@@ -33,7 +33,9 @@ func (s *DashboardTestSuite) SetupTest() {
 }
 
 func (s *DashboardTestSuite) TearDownTest() {
-	s.mockRedis.Close()
+	if s.mockRedis != nil {
+		s.mockRedis.Close()
+	}
 }
 
 func TestDashboardTestSuite(t *testing.T) {
@@ -61,6 +63,15 @@ func (s *DashboardTestSuite) TestAddMembersBatch() {
 
 	count, _ := s.repo.GetTotalMembers(s.ctx, "batch_db")
 	assert.Equal(s.T(), int64(3), count)
+}
+
+func (s *DashboardTestSuite) TestAddMembersBatch_EmptyInput() {
+	err := s.repo.AddMembersBatch(s.ctx, "batch_empty", nil)
+	assert.NoError(s.T(), err)
+
+	count, err := s.repo.GetTotalMembers(s.ctx, "batch_empty")
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), int64(0), count)
 }
 
 func (s *DashboardTestSuite) TestViewMemberRank() {
@@ -97,6 +108,16 @@ func (s *DashboardTestSuite) TestGetTopMembers() {
 	assert.Equal(s.T(), int64(2), top[1].Rank)
 }
 
+func (s *DashboardTestSuite) TestGetTopMembers_NonPositiveLimit() {
+	top, err := s.repo.GetTopMembers(s.ctx, "top", 0)
+	assert.NoError(s.T(), err)
+	assert.Nil(s.T(), top)
+
+	top, err = s.repo.GetTopMembers(s.ctx, "top", -1)
+	assert.NoError(s.T(), err)
+	assert.Nil(s.T(), top)
+}
+
 func (s *DashboardTestSuite) TestIncrementScore() {
 	_ = s.repo.AddMemberToDashboard(s.ctx, "inc", "player", 50)
 
@@ -126,4 +147,66 @@ func (s *DashboardTestSuite) TestRemoveMember() {
 
 	count, _ := s.repo.GetTotalMembers(s.ctx, "rem")
 	assert.Equal(s.T(), int64(1), count)
+}
+
+func (s *DashboardTestSuite) TestIncrementMembersBatch() {
+	_ = s.repo.AddMemberToDashboard(s.ctx, "bulk_inc", "u1", 10)
+	_ = s.repo.AddMemberToDashboard(s.ctx, "bulk_inc", "u2", 20)
+
+	updates := []entity.DashboardRecord{
+		{ID: "u1", Score: 5},
+		{ID: "u2", Score: -10},
+		{ID: "u3", Score: 100},
+	}
+
+	err := s.repo.IncrementMembersBatch(s.ctx, "bulk_inc", updates)
+	assert.NoError(s.T(), err)
+
+	top, err := s.repo.GetTopMembers(s.ctx, "bulk_inc", 3)
+	assert.NoError(s.T(), err)
+	assert.Len(s.T(), top, 3)
+
+	assert.Equal(s.T(), "u3", top[0].ID)
+	assert.Equal(s.T(), float64(100), top[0].Score)
+
+	assert.Equal(s.T(), "u1", top[1].ID)
+	assert.Equal(s.T(), float64(15), top[1].Score)
+
+	assert.Equal(s.T(), "u2", top[2].ID)
+	assert.Equal(s.T(), float64(10), top[2].Score)
+}
+
+func (s *DashboardTestSuite) TestIncrementMembersBatch_EmptyInput() {
+	err := s.repo.IncrementMembersBatch(s.ctx, "bulk_inc_empty", nil)
+	assert.NoError(s.T(), err)
+}
+
+func (s *DashboardTestSuite) TestIncrementMembersBatch_ReturnsErrorWhenRedisUnavailable() {
+	updates := []entity.DashboardRecord{
+		{ID: "u1", Score: 1},
+	}
+
+	s.mockRedis.Close()
+	s.mockRedis = nil
+
+	err := s.repo.IncrementMembersBatch(s.ctx, "bulk_inc_err", updates)
+	assert.Error(s.T(), err)
+}
+
+func (s *DashboardTestSuite) TestViewMemberRank_ReturnsRedisError() {
+	s.mockRedis.Close()
+	s.mockRedis = nil
+
+	_, err := s.repo.ViewMemberRank(s.ctx, "ranks", "winner")
+	assert.Error(s.T(), err)
+	assert.NotErrorIs(s.T(), err, core.ErrMemberNotFound)
+}
+
+func (s *DashboardTestSuite) TestGetTopMembers_ReturnsRedisError() {
+	s.mockRedis.Close()
+	s.mockRedis = nil
+
+	top, err := s.repo.GetTopMembers(s.ctx, "top", 3)
+	assert.Error(s.T(), err)
+	assert.Nil(s.T(), top)
 }
