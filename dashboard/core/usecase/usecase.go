@@ -2,8 +2,9 @@ package usecase
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
+	"github.com/jassus213/go-board/dashboard/core"
 	"github.com/jassus213/go-board/dashboard/core/dto"
 	"github.com/jassus213/go-board/dashboard/core/entity"
 	"github.com/jassus213/go-board/dashboard/core/interfaces"
@@ -23,7 +24,7 @@ func New(repo interfaces.DashboardRepository) *BoardUseCase {
 // It validates that both Dashboard and MemberID are provided before persisting data.
 func (u *BoardUseCase) AddMemberHandler(ctx context.Context, req dto.AddMemberRequest) error {
 	if req.Dashboard == "" || req.MemberID == "" {
-		return errors.New("dashboard and member ID are required")
+		return fmt.Errorf("%w: dashboard and member ID are required", core.ErrInvalidArgument)
 	}
 
 	return u.repo.AddMemberToDashboard(ctx, req.Dashboard, req.MemberID, req.Score)

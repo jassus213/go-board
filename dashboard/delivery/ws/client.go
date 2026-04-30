@@ -10,6 +10,7 @@ import (
 	"github.com/jassus213/go-board/dashboard/auth"
 	"github.com/jassus213/go-board/dashboard/core/dto"
 	"github.com/jassus213/go-board/dashboard/core/interfaces"
+	"github.com/jassus213/go-board/dashboard/delivery/problem"
 )
 
 // Time allowed to write a message to the peer.
@@ -93,7 +94,8 @@ func (c *Client) readPump(ctx context.Context) {
 
 		response := OutboundMessage{}
 		if err != nil {
-			response.Error = err.Error()
+			pd := problem.FromError(err, http.StatusInternalServerError, "/ws")
+			response.Problem = &pd
 		} else {
 			response.Rank = rank
 		}
@@ -174,14 +176,16 @@ func ServeWs(
 	}
 
 	if token == "" {
-		http.Error(w, "Unauthorized: missing token", http.StatusUnauthorized)
+		pd := problem.FromError(auth.ErrEmptyToken, http.StatusUnauthorized, r.URL.Path)
+		problem.WriteHTTP(w, &pd)
 		return
 	}
 
 	memberID, err := verifier.Verify(r.Context(), token)
 	if err != nil {
 		log.Printf("WebSocket Auth failed: %v", err)
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		pd := problem.FromError(err, http.StatusForbidden, r.URL.Path)
+		problem.WriteHTTP(w, &pd)
 		return
 	}
 

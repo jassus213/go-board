@@ -6,14 +6,18 @@ package grpc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/jassus213/go-board/dashboard/auth"
+	"github.com/jassus213/go-board/dashboard/core"
 	"github.com/jassus213/go-board/dashboard/core/dto"
 	"github.com/jassus213/go-board/dashboard/core/interfaces"
 	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
+	"github.com/jassus213/go-board/dashboard/delivery/problem"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -80,9 +84,11 @@ func (s *Server) handleUpdateRequest(
 	}
 
 	if in.Dashboard == "" || in.MemberId == "" || authID == "" {
+		err := fmt.Errorf("%w: missing dashboard or member_id", core.ErrInvalidArgument)
+		pd := problem.FromError(err, http.StatusBadRequest, "/dashboard.DashboardService/StreamUpdates")
 		return stream.Send(&pb.UpdateResponse{
 			MemberId: authID,
-			Error:    "missing dashboard or member_id",
+			Problem:  toProtoProblem(&pd),
 		})
 	}
 
@@ -94,7 +100,8 @@ func (s *Server) handleUpdateRequest(
 
 	resp := &pb.UpdateResponse{MemberId: authID}
 	if err != nil {
-		resp.Error = err.Error()
+		pd := problem.FromError(err, http.StatusInternalServerError, "/dashboard.DashboardService/StreamUpdates")
+		resp.Problem = toProtoProblem(&pd)
 	} else {
 		resp.Rank = rank
 	}
@@ -108,12 +115,14 @@ func AuthInterceptor(verifier auth.Verifier) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		md, ok := metadata.FromIncomingContext(ss.Context())
 		if !ok {
-			return errors.New("missing metadata")
+			pd := problem.FromError(auth.ErrEmptyToken, http.StatusUnauthorized, info.FullMethod)
+			return withProblemDetails(&pd)
 		}
 
 		values := md["authorization"]
 		if len(values) == 0 {
-			return errors.New("missing authorization token")
+			pd := problem.FromError(auth.ErrEmptyToken, http.StatusUnauthorized, info.FullMethod)
+			return withProblemDetails(&pd)
 		}
 
 		token := values[0]
@@ -122,7 +131,8 @@ func AuthInterceptor(verifier auth.Verifier) grpc.StreamServerInterceptor {
 		memberID, err := verifier.Verify(ss.Context(), token)
 		if err != nil {
 			log.Printf("gRPC auth failed: %v", err)
-			return err
+			pd := problem.FromError(err, http.StatusForbidden, info.FullMethod)
+			return withProblemDetails(&pd)
 		}
 
 		wrapped := &authenticatedStream{
@@ -143,4 +153,28 @@ type authenticatedStream struct {
 // Context overrides the standard stream context to include the verified memberID.
 func (s *authenticatedStream) Context() context.Context {
 	return context.WithValue(s.ServerStream.Context(), memberIDKey, s.memberID)
+}
+
+func toProtoProblem(pd *core.ProblemDetails) *pb.ProblemDetails {
+	if pd == nil {
+		return nil
+	}
+
+	return &pb.ProblemDetails{
+		Type:     pd.Type,
+		Title:    pd.Title,
+		Status:   int32(pd.Status),
+		Detail:   pd.Detail,
+		Instance: pd.Instance,
+		Code:     pd.Code,
+	}
+}
+
+func withProblemDetails(pd *core.ProblemDetails) error {
+	st := problem.ToGRPCStatus(pd)
+	stWithDetails, err := st.WithDetails(toProtoProblem(pd))
+	if err != nil {
+		return st.Err()
+	}
+	return stWithDetails.Err()
 }

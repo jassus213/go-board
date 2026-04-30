@@ -83,5 +83,5 @@ func assertIncrementAndRank(t *testing.T, repo *mocks.DashboardRepository, conn 
 	err = conn.ReadJSON(&resp)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), resp.Rank)
-	assert.Empty(t, resp.Error)
+	assert.Nil(t, resp.Problem)
 }

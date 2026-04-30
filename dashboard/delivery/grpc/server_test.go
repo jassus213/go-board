@@ -65,7 +65,7 @@ func TestStreamUpdates(t *testing.T) {
 			Once()
 
 		stream.On("Send", mock.MatchedBy(func(r *pb.UpdateResponse) bool {
-			return r.Rank == 1 && r.MemberId == testAuthID && r.Error == ""
+			return r.Rank == 1 && r.MemberId == testAuthID && r.Problem == nil
 		})).Return(nil).Once()
 
 		err := srv.StreamUpdates(stream)
@@ -82,7 +82,10 @@ func TestStreamUpdates(t *testing.T) {
 		stream.On("Recv").Return(nil, io.EOF).Once()
 
 		stream.On("Send", mock.MatchedBy(func(r *pb.UpdateResponse) bool {
-			return r.Error == "missing dashboard or member_id"
+			return r.Problem != nil &&
+				r.Problem.Code == "invalid_argument" &&
+				r.Problem.Status == 400 &&
+				r.Problem.Detail == "missing dashboard or member_id"
 		})).Return(nil).Once()
 
 		err := srv.StreamUpdates(stream)
@@ -147,7 +150,11 @@ func TestStreamUpdates_Errors(t *testing.T) {
 			Return(assert.AnError).
 			Once()
 		stream.On("Send", mock.MatchedBy(func(r *pb.UpdateResponse) bool {
-			return r.MemberId == testAuthID && r.Error != "" && r.Rank == 0
+			return r.MemberId == testAuthID &&
+				r.Rank == 0 &&
+				r.Problem != nil &&
+				r.Problem.Code == "internal_error" &&
+				r.Problem.Status == 500
 		})).Return(nil).Once()
 
 		err := srv.StreamUpdates(stream)

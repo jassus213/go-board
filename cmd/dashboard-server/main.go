@@ -16,6 +16,7 @@ import (
 	"github.com/jassus213/go-board/dashboard/core/usecase"
 	"github.com/jassus213/go-board/dashboard/delivery/grpc"
 	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
+	"github.com/jassus213/go-board/dashboard/delivery/problem"
 	"github.com/jassus213/go-board/dashboard/delivery/ws"
 	"github.com/jassus213/go-board/dashboard/repo/redis"
 
@@ -146,7 +147,8 @@ func runHTTPServer(lc fx.Lifecycle, cfg Config, hub *ws.Hub, uc *usecase.BoardUs
 		})
 	} else {
 		mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, "websocket mode is disabled", http.StatusServiceUnavailable)
+			pd := problem.FromError(errors.New("websocket mode is disabled"), http.StatusServiceUnavailable, r.URL.Path)
+			problem.WriteHTTP(w, &pd)
 		})
 	}
 

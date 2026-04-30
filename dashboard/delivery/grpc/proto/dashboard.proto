@@ -18,5 +18,15 @@ message UpdateResponse {
   string member_id = 1;
   int64 rank = 2;
   double score = 3;
-  string error = 4;
+  reserved 4;
+  ProblemDetails problem = 5;
+}
+
+message ProblemDetails {
+  string type = 1;
+  string title = 2;
+  int32 status = 3;
+  string detail = 4;
+  string instance = 5;
+  string code = 6;
 }

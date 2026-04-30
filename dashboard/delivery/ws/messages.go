@@ -1,5 +1,7 @@
 package ws
 
+import "github.com/jassus213/go-board/dashboard/core"
+
 // InboundMessage represents the JSON payload sent by the client to the server via WebSocket.
 // It encapsulates a command to modify a specific member's score on a dashboard.
 type InboundMessage struct {
@@ -18,6 +20,6 @@ type OutboundMessage struct {
 	Rank int64 `json:"rank"`
 	// Score is the member's updated total score.
 	Score float64 `json:"score"`
-	// Error contains a description if the operation failed; otherwise, it is empty and omitted from the JSON.
-	Error string `json:"error,omitempty"`
+	// Problem contains typed error details according to RFC 7807 when operation fails.
+	Problem *core.ProblemDetails `json:"problem,omitempty"`
 }

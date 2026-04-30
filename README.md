@@ -246,8 +246,21 @@ ws://localhost:8080/ws?token=<AUTH_SECRET>
 **Receive Response**
 ```json
 {
-  "rank": 42,
-  "error": ""
+  "rank": 42
+}
+```
+
+On error, WebSocket responses include typed Problem Details:
+```json
+{
+  "problem": {
+    "type": "urn:goboard:request:invalid-argument",
+    "title": "Bad Request",
+    "status": 400,
+    "detail": "missing dashboard or member_id",
+    "instance": "/ws",
+    "code": "invalid_argument"
+  }
 }
 ```
 
@@ -269,9 +282,22 @@ message UpdateResponse {
   string member_id = 1;
   int64 rank = 2;
   double score = 3;
-  string error = 4;
+  ProblemDetails problem = 5;
+}
+
+message ProblemDetails {
+  string type = 1;
+  string title = 2;
+  int32 status = 3;
+  string detail = 4;
+  string instance = 5;
+  string code = 6;
 }
 ```
+
+Auth failures in the gRPC interceptor are returned as `grpc status` errors with:
+- code mapped from `ProblemDetails.status` (`Unauthenticated`, `PermissionDenied`, etc.),
+- `ProblemDetails` attached to status `details` for typed client-side handling.
 
 ### Known Runtime Behavior
 
