@@ -49,6 +49,29 @@ func TestRouter_HealthAndAuth(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 		assert.Equal(t, "auth_missing_token", body["code"])
 	})
+
+	t.Run("rest_forbidden_with_invalid_token", func(t *testing.T) {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/api/v1/dashboards/games/stats", http.NoBody)
+		assert.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer wrong-token")
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusForbidden, rec.Code)
+		var body map[string]any
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+		assert.Equal(t, "auth_invalid_token", body["code"])
+	})
+
+	t.Run("websocket_disabled_endpoint", func(t *testing.T) {
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/ws", http.NoBody)
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
+	})
 }
 
 func TestRouter_LeaderboardHandlers(t *testing.T) {
@@ -89,6 +112,22 @@ func TestRouter_LeaderboardHandlers(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 		assert.Equal(t, "admin_user", body["member_id"])
 		assert.EqualValues(t, 2, body["rank"])
+	})
+
+	t.Run("increment_score_invalid_payload", func(t *testing.T) {
+		req, err := http.NewRequestWithContext(
+			context.Background(),
+			http.MethodPost,
+			"/api/v1/dashboards/games/members/u1/increment",
+			bytes.NewReader([]byte(`{}`)),
+		)
+		assert.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer token")
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 
 	t.Run("top_members_invalid_limit", func(t *testing.T) {
@@ -138,5 +177,74 @@ func TestRouter_LeaderboardHandlers(t *testing.T) {
 		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 		assert.Len(t, body.Members, 2)
 		assert.Equal(t, "u1", body.Members[0].ID)
+	})
+
+	t.Run("member_rank_success", func(t *testing.T) {
+		repo.EXPECT().
+			ViewMemberRank(mock.Anything, "games", "admin_user").
+			Return(int64(7), nil).
+			Once()
+
+		req, err := http.NewRequestWithContext(
+			context.Background(),
+			http.MethodGet,
+			"/api/v1/dashboards/games/members/u2/rank",
+			http.NoBody,
+		)
+		assert.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer token")
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var body map[string]any
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+		assert.Equal(t, "admin_user", body["member_id"])
+		assert.EqualValues(t, 7, body["rank"])
+	})
+
+	t.Run("dashboard_stats_success", func(t *testing.T) {
+		repo.EXPECT().
+			GetTotalMembers(mock.Anything, "games").
+			Return(int64(42), nil).
+			Once()
+
+		req, err := http.NewRequestWithContext(
+			context.Background(),
+			http.MethodGet,
+			"/api/v1/dashboards/games/stats",
+			http.NoBody,
+		)
+		assert.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer token")
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var body map[string]any
+		assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+		assert.EqualValues(t, 42, body["total_members"])
+	})
+
+	t.Run("dashboard_stats_usecase_error", func(t *testing.T) {
+		repo.EXPECT().
+			GetTotalMembers(mock.Anything, "games").
+			Return(int64(0), assert.AnError).
+			Once()
+
+		req, err := http.NewRequestWithContext(
+			context.Background(),
+			http.MethodGet,
+			"/api/v1/dashboards/games/stats",
+			http.NoBody,
+		)
+		assert.NoError(t, err)
+		req.Header.Set("Authorization", "Bearer token")
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
 }

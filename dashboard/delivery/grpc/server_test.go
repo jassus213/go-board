@@ -5,6 +5,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/jassus213/go-board/dashboard/core"
 	"github.com/jassus213/go-board/dashboard/core/entity"
 	"github.com/jassus213/go-board/dashboard/core/usecase"
 	pb "github.com/jassus213/go-board/dashboard/delivery/grpc/gen"
@@ -214,6 +215,117 @@ func TestUnaryMethods(t *testing.T) {
 	t.Run("invalid_argument_error", func(t *testing.T) {
 		_, err := srv.GetDashboardStats(ctx, &pb.GetDashboardStatsRequest{})
 		assert.Error(t, err)
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+	})
+}
+
+func TestGetMemberRank(t *testing.T) {
+	repo := mocks.NewDashboardRepository(t)
+	uc := usecase.New(repo)
+	srv := NewServer(uc)
+	ctx := context.WithValue(context.Background(), memberIDKey, "auth_user")
+
+	t.Run("success_uses_authenticated_member", func(t *testing.T) {
+		repo.EXPECT().
+			ViewMemberRank(mock.Anything, "games", "auth_user").
+			Return(int64(4), nil).
+			Once()
+
+		resp, err := srv.GetMemberRank(ctx, &pb.GetMemberRankRequest{
+			Dashboard: "games",
+			MemberId:  "other_user",
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, "auth_user", resp.MemberId)
+		assert.Equal(t, int64(4), resp.Rank)
+	})
+
+	t.Run("missing_dashboard_returns_invalid_argument", func(t *testing.T) {
+		_, err := srv.GetMemberRank(ctx, &pb.GetMemberRankRequest{})
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+	})
+
+	t.Run("usecase_error_returns_internal", func(t *testing.T) {
+		repo.EXPECT().
+			ViewMemberRank(mock.Anything, "games", "auth_user").
+			Return(int64(0), assert.AnError).
+			Once()
+
+		_, err := srv.GetMemberRank(ctx, &pb.GetMemberRankRequest{Dashboard: "games"})
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.Internal, st.Code())
+	})
+}
+
+func TestTopAndStatsErrorPaths(t *testing.T) {
+	repo := mocks.NewDashboardRepository(t)
+	uc := usecase.New(repo)
+	srv := NewServer(uc)
+	ctx := context.WithValue(context.Background(), memberIDKey, "auth_user")
+
+	t.Run("get_top_members_usecase_error", func(t *testing.T) {
+		repo.EXPECT().
+			GetTopMembers(mock.Anything, "games", int64(10)).
+			Return(nil, assert.AnError).
+			Once()
+
+		_, err := srv.GetTopMembers(ctx, &pb.GetTopMembersRequest{
+			Dashboard: "games",
+			Limit:     10,
+		})
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.Internal, st.Code())
+	})
+
+	t.Run("get_top_members_invalid_argument", func(t *testing.T) {
+		_, err := srv.GetTopMembers(ctx, &pb.GetTopMembersRequest{})
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+	})
+
+	t.Run("get_dashboard_stats_success", func(t *testing.T) {
+		repo.EXPECT().
+			GetTotalMembers(mock.Anything, "games").
+			Return(int64(99), nil).
+			Once()
+
+		resp, err := srv.GetDashboardStats(ctx, &pb.GetDashboardStatsRequest{Dashboard: "games"})
+		assert.NoError(t, err)
+		assert.Equal(t, int64(99), resp.TotalMembers)
+	})
+
+	t.Run("get_dashboard_stats_usecase_error", func(t *testing.T) {
+		repo.EXPECT().
+			GetTotalMembers(mock.Anything, "games").
+			Return(int64(0), assert.AnError).
+			Once()
+
+		_, err := srv.GetDashboardStats(ctx, &pb.GetDashboardStatsRequest{Dashboard: "games"})
+		st, ok := status.FromError(err)
+		assert.True(t, ok)
+		assert.Equal(t, codes.Internal, st.Code())
+	})
+}
+
+func TestProblemHelpers(t *testing.T) {
+	t.Run("to_proto_problem_nil", func(t *testing.T) {
+		assert.Nil(t, toProtoProblem(nil))
+	})
+
+	t.Run("with_problem_details_returns_grpc_error", func(t *testing.T) {
+		err := withProblemDetails(&core.ProblemDetails{
+			Status: 400,
+			Title:  "Bad Request",
+			Detail: "invalid input",
+			Code:   "invalid_argument",
+		})
 		st, ok := status.FromError(err)
 		assert.True(t, ok)
 		assert.Equal(t, codes.InvalidArgument, st.Code())
